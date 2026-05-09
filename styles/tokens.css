@@ -1,0 +1,293 @@
+/* ============================================================
+   WFSAAS DESIGN TOKENS
+   Source of truth for all visual decisions.
+   Change here → changes everywhere.
+   ============================================================ */
+
+:root {
+
+  /* ----------------------------------------------------------
+     BRAND COLORS — Primary: Deep Arctic Teal #006F87
+     ---------------------------------------------------------- */
+  --color-primary-50:  #f0fbfe;
+  --color-primary-100: #d8f4fb;
+  --color-primary-200: #b0e8f7;
+  --color-primary-300: #79d5f0;
+  --color-primary-400: #3bbce5;
+  --color-primary-500: #1aa3cc;
+  --color-primary-600: #006F87;   /* ← Brand primary */
+  --color-primary-700: #005a6e;
+  --color-primary-800: #004857;
+  --color-primary-900: #003a46;
+  --color-primary-950: #002530;
+
+  /* ----------------------------------------------------------
+     SLATE NAVY — Secondary/Navigation: #1E293B
+     ---------------------------------------------------------- */
+  --color-nav-50:  #f8fafc;
+  --color-nav-100: #f1f5f9;
+  --color-nav-200: #e2e8f0;
+  --color-nav-300: #cbd5e1;
+  --color-nav-400: #94a3b8;
+  --color-nav-500: #64748b;
+  --color-nav-600: #475569;
+  --color-nav-700: #334155;
+  --color-nav-800: #1E293B;   /* ← Brand nav */
+  --color-nav-900: #0f172a;
+  --color-nav-950: #020617;
+
+  /* ----------------------------------------------------------
+     NEUTRAL GRAYS
+     ---------------------------------------------------------- */
+  --color-gray-0:   #ffffff;
+  --color-gray-50:  #F8FAFC;   /* ← Background canvas */
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #E2E8F0;   /* ← Borders/dividers */
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+  --color-gray-950: #020617;
+
+  /* ----------------------------------------------------------
+     SEMANTIC COLORS
+     ---------------------------------------------------------- */
+  /* Success */
+  --color-success-50:  #f0fdf4;
+  --color-success-100: #dcfce7;
+  --color-success-200: #bbf7d0;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+
+  /* Warning */
+  --color-warning-50:  #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+
+  /* Danger */
+  --color-danger-50:  #fff1f2;
+  --color-danger-100: #ffe4e6;
+  --color-danger-200: #fecdd3;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+
+  /* Info */
+  --color-info-50:  #eff6ff;
+  --color-info-100: #dbeafe;
+  --color-info-200: #bfdbfe;
+  --color-info-500: #3b82f6;
+  --color-info-600: #2563eb;
+  --color-info-700: #1d4ed8;
+
+  /* Purple (for special badges) */
+  --color-purple-50:  #faf5ff;
+  --color-purple-100: #f3e8ff;
+  --color-purple-500: #a855f7;
+  --color-purple-600: #9333ea;
+  --color-purple-700: #7e22ce;
+
+  /* ----------------------------------------------------------
+     SEMANTIC SURFACE TOKENS
+     These are what components actually use.
+     ---------------------------------------------------------- */
+
+  /* Page & layout */
+  --surface-page:           var(--color-gray-50);
+  --surface-card:           var(--color-gray-0);
+  --surface-card-hover:     var(--color-gray-50);
+  --surface-sidebar:        var(--color-nav-800);
+  --surface-sidebar-hover:  var(--color-nav-700);
+  --surface-sidebar-active: var(--color-primary-600);
+  --surface-topbar:         var(--color-gray-0);
+  --surface-overlay:        rgba(15, 23, 42, 0.5);
+  --surface-tooltip:        var(--color-nav-900);
+  --surface-input:          var(--color-gray-0);
+  --surface-input-focus:    var(--color-gray-0);
+  --surface-disabled:       var(--color-gray-100);
+  --surface-table-header:   var(--color-gray-50);
+  --surface-table-row-alt:  var(--color-gray-50);
+  --surface-table-row-hover:var(--color-primary-50);
+
+  /* Borders */
+  --border-default:  var(--color-gray-200);
+  --border-strong:   var(--color-gray-300);
+  --border-focus:    var(--color-primary-600);
+  --border-danger:   var(--color-danger-500);
+  --border-success:  var(--color-success-500);
+
+  /* Text */
+  --text-primary:      var(--color-gray-900);
+  --text-secondary:    var(--color-gray-500);
+  --text-tertiary:     var(--color-gray-400);
+  --text-disabled:     var(--color-gray-300);
+  --text-inverse:      var(--color-gray-0);
+  --text-link:         var(--color-primary-600);
+  --text-link-hover:   var(--color-primary-700);
+  --text-danger:       var(--color-danger-600);
+  --text-success:      var(--color-success-600);
+  --text-warning:      var(--color-warning-600);
+  --text-on-nav:       var(--color-nav-300);
+  --text-on-nav-active:var(--color-gray-0);
+
+  /* ----------------------------------------------------------
+     TYPOGRAPHY
+     ---------------------------------------------------------- */
+  --font-sans:    'DM Sans', 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+  --font-display: 'DM Sans', sans-serif;
+
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.8125rem;  /* 13px */
+  --text-base: 0.875rem;   /* 14px — ERP default, data-dense */
+  --text-md:   0.9375rem;  /* 15px */
+  --text-lg:   1rem;       /* 16px */
+  --text-xl:   1.125rem;   /* 18px */
+  --text-2xl:  1.25rem;    /* 20px */
+  --text-3xl:  1.5rem;     /* 24px */
+  --text-4xl:  1.875rem;   /* 30px */
+
+  --font-normal:   400;
+  --font-medium:   500;
+  --font-semibold: 600;
+  --font-bold:     700;
+
+  --leading-tight:  1.25;
+  --leading-snug:   1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed:1.625;
+
+  --tracking-tight:  -0.02em;
+  --tracking-normal:  0em;
+  --tracking-wide:    0.025em;
+  --tracking-wider:   0.05em;
+  --tracking-widest:  0.1em;
+
+  /* ----------------------------------------------------------
+     SPACING SCALE
+     ---------------------------------------------------------- */
+  --space-px:  1px;
+  --space-0:   0px;
+  --space-0-5: 2px;
+  --space-1:   4px;
+  --space-1-5: 6px;
+  --space-2:   8px;
+  --space-2-5: 10px;
+  --space-3:   12px;
+  --space-3-5: 14px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-7:   28px;
+  --space-8:   32px;
+  --space-9:   36px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-14:  56px;
+  --space-16:  64px;
+  --space-20:  80px;
+  --space-24:  96px;
+
+  /* ----------------------------------------------------------
+     BORDER RADIUS
+     ---------------------------------------------------------- */
+  --radius-none: 0px;
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-2xl:  16px;
+  --radius-full: 9999px;
+
+  /* ----------------------------------------------------------
+     SHADOWS
+     ---------------------------------------------------------- */
+  --shadow-none: none;
+  --shadow-xs:   0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-sm:   0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.08);
+  --shadow-md:   0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.08);
+  --shadow-lg:   0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.08);
+  --shadow-xl:   0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  --shadow-2xl:  0 25px 50px -12px rgba(15, 23, 42, 0.18);
+  --shadow-inner:inset 0 2px 4px 0 rgba(15, 23, 42, 0.06);
+  --shadow-focus:0 0 0 3px rgba(0, 111, 135, 0.18);
+  --shadow-danger-focus: 0 0 0 3px rgba(239, 68, 68, 0.18);
+
+  /* ----------------------------------------------------------
+     Z-INDEX SCALE
+     ---------------------------------------------------------- */
+  --z-below:    -1;
+  --z-base:      0;
+  --z-raised:    10;
+  --z-dropdown:  100;
+  --z-sticky:    200;
+  --z-overlay:   300;
+  --z-modal:     400;
+  --z-toast:     500;
+  --z-tooltip:   600;
+
+  /* ----------------------------------------------------------
+     LAYOUT
+     ---------------------------------------------------------- */
+  --sidebar-width:         240px;
+  --sidebar-collapsed-width: 64px;
+  --topbar-height:         56px;
+  --page-max-width:        1440px;
+  --content-padding:       var(--space-6);
+  --content-padding-mobile:var(--space-4);
+
+  /* ----------------------------------------------------------
+     TRANSITIONS
+     ---------------------------------------------------------- */
+  --transition-fast:   100ms ease;
+  --transition-base:   150ms ease;
+  --transition-slow:   250ms ease;
+  --transition-slower: 350ms ease;
+
+  /* ----------------------------------------------------------
+     COMPONENT TOKENS — Buttons
+     ---------------------------------------------------------- */
+  --btn-height-sm:  32px;
+  --btn-height-md:  36px;
+  --btn-height-lg:  40px;
+  --btn-px-sm:      var(--space-3);
+  --btn-px-md:      var(--space-4);
+  --btn-px-lg:      var(--space-5);
+  --btn-font-size:  var(--text-sm);
+  --btn-font-weight:var(--font-medium);
+  --btn-radius:     var(--radius-md);
+
+  /* ----------------------------------------------------------
+     COMPONENT TOKENS — Inputs
+     ---------------------------------------------------------- */
+  --input-height-sm: 32px;
+  --input-height-md: 36px;
+  --input-height-lg: 40px;
+  --input-px:        var(--space-3);
+  --input-font-size: var(--text-sm);
+  --input-radius:    var(--radius-md);
+
+  /* ----------------------------------------------------------
+     COMPONENT TOKENS — Table
+     ---------------------------------------------------------- */
+  --table-cell-py:    var(--space-2-5);
+  --table-cell-px:    var(--space-4);
+  --table-font-size:  var(--text-sm);
+  --table-header-font-size: var(--text-xs);
+
+  /* ----------------------------------------------------------
+     COMPONENT TOKENS — Sidebar
+     ---------------------------------------------------------- */
+  --sidebar-item-height: 36px;
+  --sidebar-item-px:     var(--space-3);
+  --sidebar-item-gap:    var(--space-2);
+  --sidebar-item-radius: var(--radius-md);
+  --sidebar-section-label-size: var(--text-xs);
+}

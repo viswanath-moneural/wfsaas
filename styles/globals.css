@@ -1,0 +1,281 @@
+/* ============================================================
+   WFSAAS GLOBAL STYLES
+   Import order: tokens.css → globals.css
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import './tokens.css';
+
+/* ----------------------------------------------------------
+   RESET
+   ---------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ----------------------------------------------------------
+   TYPOGRAPHY BASE
+   ---------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+}
+
+h1 { font-size: var(--text-3xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+h4 { font-size: var(--text-lg); }
+h5 { font-size: var(--text-base); }
+h6 { font-size: var(--text-sm); font-weight: var(--font-medium); }
+
+p {
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
+}
+
+a {
+  color: var(--text-link);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--text-link-hover);
+  text-decoration: underline;
+}
+
+strong, b {
+  font-weight: var(--font-semibold);
+}
+
+small {
+  font-size: var(--text-xs);
+}
+
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+code {
+  background: var(--color-gray-100);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary-700);
+}
+
+/* ----------------------------------------------------------
+   LISTS
+   ---------------------------------------------------------- */
+ul, ol {
+  list-style: none;
+}
+
+/* ----------------------------------------------------------
+   MEDIA
+   ---------------------------------------------------------- */
+img, svg, video {
+  display: block;
+  max-width: 100%;
+}
+
+/* ----------------------------------------------------------
+   FORM ELEMENTS — base reset
+   ---------------------------------------------------------- */
+button, input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+input, textarea, select {
+  background: var(--surface-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--input-radius);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+input:disabled, textarea:disabled, select:disabled {
+  background: var(--surface-disabled);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------
+   TABLE BASE
+   ---------------------------------------------------------- */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th {
+  text-align: left;
+  font-weight: var(--font-semibold);
+}
+
+/* ----------------------------------------------------------
+   SCROLLBAR
+   ---------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-300);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-400);
+}
+
+/* ----------------------------------------------------------
+   SELECTION
+   ---------------------------------------------------------- */
+::selection {
+  background: var(--color-primary-100);
+  color: var(--color-primary-900);
+}
+
+/* ----------------------------------------------------------
+   FOCUS VISIBLE (keyboard nav)
+   ---------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------
+   LAYOUT UTILITIES
+   ---------------------------------------------------------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------
+   ANIMATION KEYFRAMES
+   ---------------------------------------------------------- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ----------------------------------------------------------
+   UTILITY CLASSES
+   ---------------------------------------------------------- */
+.animate-fade-in     { animation: fadeIn     var(--transition-slow) ease forwards; }
+.animate-fade-in-up  { animation: fadeInUp   var(--transition-slow) ease forwards; }
+.animate-fade-in-down{ animation: fadeInDown var(--transition-slow) ease forwards; }
+.animate-scale-in    { animation: scaleIn    var(--transition-base) ease forwards; }
+.animate-spin        { animation: spin 1s linear infinite; }
+.animate-pulse       { animation: pulse 2s ease infinite; }
+
+/* Page-level fade in */
+.page-enter {
+  animation: fadeInUp 200ms ease forwards;
+}
+
+/* ----------------------------------------------------------
+   PRINT
+   ---------------------------------------------------------- */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; color: black; }
+}
