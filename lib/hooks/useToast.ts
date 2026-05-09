@@ -33,7 +33,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const toast = useCallback((opts: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).slice(2)
-    const newToast: Toast = { id, duration: 4000, ...opts }
+    const newToast: Toast = { duration: 4000, ...opts, id }  // fixed: default first, id last
     setToasts(prev => [...prev, newToast])
     setTimeout(() => dismiss(id), newToast.duration)
   }, [dismiss])
