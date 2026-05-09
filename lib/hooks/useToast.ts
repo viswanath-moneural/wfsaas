@@ -22,7 +22,7 @@ interface ToastContextValue {
   dismiss: (id: string) => void
 }
 
-const ToastContext = createContext<ToastContextValue>({} as ToastContextValue)
+const ToastCtx = createContext<ToastContextValue>({} as ToastContextValue)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -52,12 +52,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     toast({ type: 'info', title, message, duration: 4000 }), [toast])
 
   return (
-    <ToastContext.Provider value={{ toasts, toast, success, error, warning, info, dismiss }}>
+    <ToastCtx.Provider value={{ toasts, toast, success, error, warning, info, dismiss }}>
       {children}
-    </ToastContext.Provider>
+    </ToastCtx.Provider>
   )
 }
 
 export function useToast(): ToastContextValue {
-  return useContext(ToastContext)
-}  
+  return useContext(ToastCtx)
+}
