@@ -2,7 +2,6 @@
 
 import { useState, type ReactNode } from 'react'
 import Skeleton from './Skeleton'
-import Badge, { STATUS_BADGE } from './Badge'
 
 // ----------------------------------------------------------
 // Types
@@ -254,8 +253,8 @@ export default function DataTable<T extends Record<string, any>>({
                       key={key}
                       className={[
                         'dt__row',
-                        isSelected        ? 'dt__row--selected' : '',
-                        onRowClick        ? 'dt__row--clickable' : '',
+                        isSelected  ? 'dt__row--selected'  : '',
+                        onRowClick  ? 'dt__row--clickable' : '',
                       ].filter(Boolean).join(' ')}
                       onClick={onRowClick ? () => onRowClick(row) : undefined}
                     >
