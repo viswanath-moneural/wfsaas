@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Card from '@/components/Card'
 import DataTable, { type Column } from '@/components/DataTable'
 import PageHeader from '@/components/layout/PageHeader'
@@ -38,6 +39,7 @@ const EMPTY_FORM = {
 
 export default function SalesOrdersPage() {
   const { tenant, permissions } = useAuth()
+  const router = useRouter()
   const [orders, setOrders] = useState<SalesOrderRow[]>([])
   const [customers, setCustomers] = useState<CustomerOption[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
@@ -253,6 +255,7 @@ export default function SalesOrdersPage() {
           emptyMessage="Create your first order after adding customers and products."
           searchable
           searchPlaceholder="Search orders..."
+          onRowClick={(row) => router.push(`/sales/orders/${row.id}`)}
         />
       </section>
 
