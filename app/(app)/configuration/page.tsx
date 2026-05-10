@@ -21,6 +21,21 @@ const CONFIG_SECTIONS = [
     href: '/configuration/materials',
   },
   {
+    title: 'Customers',
+    description: 'Customer masters for sales orders, invoices, and payments.',
+    href: '/configuration/customers',
+  },
+  {
+    title: 'Vendors',
+    description: 'Supplier masters for purchase orders, GRNs, and payments.',
+    href: '/configuration/vendors',
+  },
+  {
+    title: 'Warehouses',
+    description: 'Stock locations used by movements, adjustments, and balances.',
+    href: '/configuration/warehouses',
+  },
+  {
     title: 'Users & Roles',
     description: 'Invite users and control module permissions.',
     href: '/configuration/users',
