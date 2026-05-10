@@ -1,10 +1,18 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { sendWhatsAppReply } from '@/lib/whatsapp'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+let supabaseAdmin: SupabaseClient | null = null
+
+function getSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+  }
+
+  return supabaseAdmin
+}
 
 // Session store
 interface Session {
@@ -16,7 +24,7 @@ interface Session {
   products?: { id: string; product_code: string; product_name: string }[]
   selected_machine?: { id: string; machine_code: string; machine_name: string }
   selected_product?: { id: string; product_code: string; product_name: string }
-  cups_per_packet?: number
+  pack_quantity?: number
   packets_qty?: number
   entries?: { machine: string; product: string; cups: number; packets: number; boxes: number }[]
 }
@@ -38,6 +46,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const body = await req.json()
     const msg  = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]
     if (!msg || msg.type !== 'text') return new Response('ok', { status: 200 })
@@ -175,7 +184,7 @@ export async function POST(req: Request) {
         await sendWhatsAppReply(phone, `❌ Invalid. Enter cups per packet (1-100)`)
         return new Response('ok', { status: 200 })
       }
-      sessions[phone] = { ...session, step: 'enter_packets', cups_per_packet: cups }
+      sessions[phone] = { ...session, step: 'enter_packets', pack_quantity: cups }
       await sendWhatsAppReply(phone, `✅ Cups: *${cups}*\n\n📦 *How many packets?*\n\nEnter number`)
       return new Response('ok', { status: 200 })
     }
@@ -200,9 +209,9 @@ export async function POST(req: Request) {
         return new Response('ok', { status: 200 })
       }
 
-      const cups_per_packet = session.cups_per_packet ?? 0
+      const pack_quantity = session.pack_quantity ?? 0
       const packets_qty     = session.packets_qty ?? 0
-      const total_cups      = cups_per_packet * packets_qty
+      const total_cups      = pack_quantity * packets_qty
 
       // Save production run
       const { error } = await supabaseAdmin.from('production_runs').insert({
@@ -212,7 +221,7 @@ export async function POST(req: Request) {
         machine_id:  session.selected_machine!.id,
         operator_id: session.operator_id,
         shift:       'Day',
-        cups_per_packet,
+        pack_quantity,
         packets_qty,
         box_qty:     boxes,
       })
@@ -228,7 +237,7 @@ export async function POST(req: Request) {
       entries.push({
         machine:  session.selected_machine!.machine_code,
         product:  session.selected_product!.product_code,
-        cups:     cups_per_packet,
+        cups:     pack_quantity,
         packets:  packets_qty,
         boxes
       })
@@ -239,7 +248,7 @@ export async function POST(req: Request) {
         `✅ *Saved!*\n` +
         `🏭 ${session.selected_machine!.machine_name}\n` +
         `📦 ${session.selected_product!.product_name}\n` +
-        `☕ ${cups_per_packet} cups × ${packets_qty} pkts = ${total_cups} cups\n` +
+        `☕ ${pack_quantity} cups × ${packets_qty} pkts = ${total_cups} cups\n` +
         `📦 ${boxes} boxes\n\n` +
         `Add another product on same machine?\n` +
         `1. Yes — same machine\n` +

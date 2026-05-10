@@ -4,6 +4,10 @@ export type OperatorStatus = 'Active' | 'Inactive'
 export type ProductCategory = 'Cups' | 'Lids'
 export type PaymentMode = 'Cash' | 'UPI' | 'Bank Transfer' | 'Adjustment' | 'Settled' | 'Other'
 
+// Temporary broad Database type until Supabase generated types are added.
+// This keeps the typed client usable while the MVP routes are being wired.
+export type Database = any
+
 export interface Tenant {
   id: string
   name: string
@@ -46,7 +50,7 @@ export interface ProductionRun {
   machine_id: string
   operator_id: string
   shift: ShiftType
-  cups_per_packet: number
+  pack_quantity: number
   packets_qty: number
   box_qty: number
   total_cups: number
@@ -70,7 +74,7 @@ export interface ParsedProduction {
   product_code: string | null
   shift: ShiftType | null
   packets_qty: number | null
-  cups_per_packet: number | null
+  pack_quantity: number | null
   operator_code: string | null
   confidence: 'high' | 'low'
 }

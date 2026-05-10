@@ -77,9 +77,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
   })
 
-  const supabase = getSupabaseClient()
+  const [supabase, setSupabase] = useState<ReturnType<typeof getSupabaseClient> | null>(null)
+
+  useEffect(() => {
+    setSupabase(getSupabaseClient())
+  }, [])
 
   const loadUserData = useCallback(async (userId: string) => {
+    if (!supabase) return
+
     try {
       // 1. Load user record
       const { data: userData, error: userError } = await supabase
@@ -178,11 +184,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase])
 
   const refreshAuth = useCallback(async () => {
+    if (!supabase) return
+
     const { data: { user } } = await supabase.auth.getUser()
     if (user) await loadUserData(user.id)
   }, [supabase, loadUserData])
 
   useEffect(() => {
+    if (!supabase) return
+
     // Initial session check
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -208,6 +218,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase, loadUserData])
 
   const signOut = useCallback(async () => {
+    if (!supabase) return
+
     await supabase.auth.signOut()
   }, [supabase])
 

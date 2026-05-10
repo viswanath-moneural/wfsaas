@@ -1,19 +1,34 @@
-import { createBrowserClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 import type { Database } from './types'
 
-export function createClient() {
-  return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+type CookieToSet = {
+  name: string
+  value: string
+  options: Parameters<Awaited<ReturnType<typeof cookies>>['set']>[2]
 }
 
-// Singleton for client components
-let client: ReturnType<typeof createClient> | null = null
+export async function createClient() {
+  const cookieStore = await cookies()
 
-export function getSupabaseClient() {
-  if (!client) {
-    client = createClient()
-  }
-  return client
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet: CookieToSet[]) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          } catch {
+            // Server Components cannot always write cookies; middleware refreshes sessions.
+          }
+        },
+      },
+    }
+  )
 }

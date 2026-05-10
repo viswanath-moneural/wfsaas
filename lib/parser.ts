@@ -30,7 +30,7 @@ export function parseProductionMessage(text: string): ParsedProduction {
 
   // Cups per packet: "100cups", "100 cups", "cups 100"
   const cupsMatch = t.match(/(\d+)\s*(?:CUPS?|CUP\s*PER)|(?:CUPS?\s*(?:PER\s*PACKET\s*)?[:=]?\s*)(\d+)/)
-  const cups_per_packet = cupsMatch ? parseInt(cupsMatch[1] ?? cupsMatch[2]) : null
+  const pack_quantity = cupsMatch ? parseInt(cupsMatch[1] ?? cupsMatch[2]) : null
 
   // Operator code: OPR-01
   const operatorMatch = t.match(/OPR[-\s]?(\d{1,2})/)
@@ -44,7 +44,7 @@ export function parseProductionMessage(text: string): ParsedProduction {
     product_code,
     shift,
     packets_qty,
-    cups_per_packet,
+    pack_quantity,
     operator_code,
     confidence,
   }
