@@ -2,343 +2,68 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Card from '@/components/Card'
+import DataTable from '@/components/DataTable'
 import PageHeader from '@/components/layout/PageHeader'
-import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
-
-interface ProductionRow {
-  id: string
-  run_date: string
-  shift: string | null
-  pack_quantity: number | null
-  packets_qty: number | null
-  box_qty: number | null
-  machines: { machine_code: string } | null
-  products: { product_code: string; product_name: string } | null
-  operators: { operator_name: string } | null
-}
-
-interface RawMessage {
-  id: string
-  content: string
-  parsed_type: string | null
-  created_at: string
-  phone: string
-}
+import { formatMoney } from '@/lib/transactions'
 
 export default function DashboardPage() {
-  const { org, tenant, permissions, isLoading: authLoading } = useAuth()
-  const [runs, setRuns] = useState<ProductionRow[]>([])
-  const [messages, setMessages] = useState<RawMessage[]>([])
+  const { org, tenant } = useAuth()
   const [loading, setLoading] = useState(true)
+  const [kpis, setKpis] = useState({ openSalesOrders: 0, unpaidInvoices: 0, openPos: 0, pendingGrn: 0, lowStock: 0, paymentsToday: 0 })
+  const [movements, setMovements] = useState<any[]>([])
+  const [payments, setPayments] = useState<any[]>([])
 
-  useEffect(() => {
-    if (!tenant?.id) {
-      setLoading(false)
-      return
-    }
+  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
 
-    const supabase = getSupabaseClient()
-    fetchData(tenant.id)
-
-    const channel = supabase
-      .channel(`dashboard_${tenant.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'production_runs', filter: `tenant_id=eq.${tenant.id}` },
-        () => fetchData(tenant.id)
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `tenant_id=eq.${tenant.id}` },
-        () => fetchData(tenant.id)
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [tenant?.id])
-
-  async function fetchData(tenantId: string) {
-    const supabase = getSupabaseClient()
+  async function load(tenantId: string) {
     setLoading(true)
+    const supabase = getSupabaseClient()
     const today = new Date().toISOString().split('T')[0]
-
-    const [{ data: runsData }, { data: msgData }] = await Promise.all([
-      supabase
-        .from('production_runs')
-        .select(`
-          id, run_date, shift, pack_quantity, packets_qty, box_qty,
-          machines(machine_code),
-          products(product_code, product_name),
-          operators(operator_name)
-        `)
-        .eq('tenant_id', tenantId)
-        .eq('run_date', today)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('messages')
-        .select('id, content, parsed_type, created_at, phone')
-        .eq('tenant_id', tenantId)
-        .gte('created_at', `${today}T00:00:00`)
-        .order('created_at', { ascending: false })
-        .limit(10),
+    const [so, inv, po, grn, stock, move, cp, vp] = await Promise.all([
+      supabase.from('sales_orders').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).in('status', ['draft', 'confirmed', 'dispatched']),
+      supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).not('status', 'in', '(paid,cancelled)'),
+      supabase.from('purchase_orders').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).in('status', ['draft', 'approved']),
+      supabase.from('goods_receipt_notes').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('quality_status', 'pending'),
+      supabase.from('stock_levels').select('current_stock, material_name').eq('tenant_id', tenantId),
+      supabase.from('stock_movements').select('id, movement_date, movement_type, qty, ref_table').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(8),
+      supabase.from('customer_payments').select('id, payment_date, amount_paid, customers(customer_name)').eq('tenant_id', tenantId).gte('payment_date', today),
+      supabase.from('vendor_payments').select('id, payment_date, amount, vendors(vendor_name)').eq('tenant_id', tenantId).gte('payment_date', today),
     ])
-
-    setRuns((runsData as unknown as ProductionRow[]) ?? [])
-    setMessages(msgData ?? [])
+    const lowStock = (stock.data ?? []).filter((row: any) => Number(row.current_stock ?? 0) <= 0).length
+    const combinedPayments = [...(cp.data ?? []).map((row: any) => ({ id: `c_${row.id}`, payment_date: row.payment_date, amount: row.amount_paid, party: row.customers?.customer_name ?? 'Customer', kind: 'Receipt' })), ...(vp.data ?? []).map((row: any) => ({ id: `v_${row.id}`, payment_date: row.payment_date, amount: row.amount, party: row.vendors?.vendor_name ?? 'Vendor', kind: 'Payment' }))]
+    setKpis({
+      openSalesOrders: so.count ?? 0,
+      unpaidInvoices: inv.count ?? 0,
+      openPos: po.count ?? 0,
+      pendingGrn: grn.count ?? 0,
+      lowStock,
+      paymentsToday: combinedPayments.length,
+    })
+    setMovements(move.data ?? [])
+    setPayments(combinedPayments.sort((a, b) => b.payment_date.localeCompare(a.payment_date)).slice(0, 8))
     setLoading(false)
   }
 
-  const stats = useMemo(() => {
-    const totalPackets = runs.reduce((sum, run) => sum + Number(run.packets_qty ?? 0), 0)
-    const totalUnits = runs.reduce(
-      (sum, run) => sum + Number(run.packets_qty ?? 0) * Number(run.pack_quantity ?? 0),
-      0
-    )
-    const unknownMessages = messages.filter((message) => message.parsed_type === 'UNKNOWN').length
+  const cards = useMemo(() => [
+    { label: 'Open Sales Orders', value: kpis.openSalesOrders },
+    { label: 'Unpaid Invoices', value: kpis.unpaidInvoices },
+    { label: 'Open Purchase Orders', value: kpis.openPos },
+    { label: 'Pending GRNs', value: kpis.pendingGrn },
+    { label: 'Low Stock Alerts', value: kpis.lowStock },
+    { label: 'Payments Today', value: kpis.paymentsToday },
+  ], [kpis])
 
-    return [
-      { label: 'Units Today', value: totalUnits.toLocaleString(), hint: 'pack quantity x packets' },
-      { label: 'Packets Today', value: totalPackets.toLocaleString(), hint: 'all reported runs' },
-      { label: 'Runs Today', value: runs.length.toLocaleString(), hint: 'machine-shift entries' },
-      { label: 'Messages To Review', value: unknownMessages.toLocaleString(), hint: 'unknown parser output' },
-    ]
-  }, [messages, runs])
+  if (!tenant) return <PageHeader title="Dashboard" description="Select a tenant to load ERP metrics." />
 
-  if (authLoading || loading) {
-    return <PageHeader title="Dashboard" description="Loading your workspace..." />
-  }
-
-  if (!tenant) {
-    return (
-      <PageHeader
-        title="Dashboard"
-        description="No active factory is assigned to your user yet. Configure a tenant before entering transactions."
-      />
-    )
-  }
-
-  return (
-    <>
-      <PageHeader title="Dashboard" description={`${org?.name ?? 'Organisation'} / ${tenant.name}`} />
-
-      <section className="stats-grid">
-        {stats.map((stat) => (
-          <Card key={stat.label} padding="md">
-            <p className="stat-label">{stat.label}</p>
-            <strong className="stat-value">{stat.value}</strong>
-            <span className="stat-hint">{stat.hint}</span>
-          </Card>
-        ))}
-      </section>
-
-      <section className="dashboard-grid">
-        <Card>
-          <div className="panel-heading">
-            <h2>Today&apos;s Production Runs</h2>
-            <Badge variant="primary">{runs.length} rows</Badge>
-          </div>
-          {runs.length === 0 ? (
-            <p className="empty">No production runs reported today.</p>
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Machine</th>
-                    <th>Product</th>
-                    <th>Shift</th>
-                    <th>Packets</th>
-                    <th>Units</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {runs.map((run) => (
-                    <tr key={run.id}>
-                      <td>{run.machines?.machine_code ?? '-'}</td>
-                      <td>{run.products?.product_code ?? run.products?.product_name ?? '-'}</td>
-                      <td>{run.shift ?? '-'}</td>
-                      <td>{run.packets_qty ?? 0}</td>
-                      <td>{Number(run.packets_qty ?? 0) * Number(run.pack_quantity ?? 0)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-
-        <Card>
-          <div className="panel-heading">
-            <h2>Recent Messages</h2>
-            <Badge variant="slate">{messages.length} today</Badge>
-          </div>
-          {messages.length === 0 ? (
-            <p className="empty">No messages received today.</p>
-          ) : (
-            <div className="message-list">
-              {messages.map((message) => (
-                <article key={message.id} className="message-item">
-                  <div>
-                    <strong>{message.phone}</strong>
-                    <Badge variant={message.parsed_type === 'UNKNOWN' ? 'warning' : 'success'} size="sm">
-                      {message.parsed_type ?? 'UNKNOWN'}
-                    </Badge>
-                  </div>
-                  <p>{message.content}</p>
-                </article>
-              ))}
-            </div>
-          )}
-        </Card>
-      </section>
-
-      <section className="module-strip" aria-label="Enabled modules">
-        {(permissions?.enabled_modules ?? []).map((moduleKey) => (
-          <Badge key={moduleKey} variant="info">
-            {moduleKey}
-          </Badge>
-        ))}
-      </section>
-
-      <style jsx>{`
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: var(--space-4);
-          margin-bottom: var(--space-6);
-        }
-
-        .stat-label,
-        .stat-hint,
-        .empty,
-        .message-item p {
-          margin: 0;
-        }
-
-        .stat-label {
-          color: var(--text-secondary);
-          font-size: var(--text-xs);
-          font-weight: var(--font-semibold);
-          text-transform: uppercase;
-          letter-spacing: var(--tracking-wider);
-        }
-
-        .stat-value {
-          display: block;
-          margin-top: var(--space-2);
-          color: var(--text-primary);
-          font-size: var(--text-4xl);
-          line-height: var(--leading-tight);
-        }
-
-        .stat-hint {
-          display: block;
-          margin-top: var(--space-1);
-          color: var(--text-secondary);
-          font-size: var(--text-xs);
-        }
-
-        .dashboard-grid {
-          display: grid;
-          grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-          gap: var(--space-6);
-        }
-
-        .panel-heading {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: var(--space-3);
-          margin-bottom: var(--space-4);
-        }
-
-        h2 {
-          margin: 0;
-          font-size: var(--text-lg);
-        }
-
-        .empty {
-          color: var(--text-secondary);
-          font-size: var(--text-sm);
-        }
-
-        .table-wrap {
-          overflow-x: auto;
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: var(--text-sm);
-        }
-
-        th,
-        td {
-          padding: var(--space-2) 0;
-          border-bottom: 1px solid var(--border-default);
-          text-align: left;
-        }
-
-        th {
-          color: var(--text-secondary);
-          font-size: var(--text-xs);
-          font-weight: var(--font-semibold);
-          text-transform: uppercase;
-        }
-
-        .message-list {
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-3);
-        }
-
-        .message-item {
-          padding: var(--space-3);
-          border: 1px solid var(--border-default);
-          border-radius: var(--radius-lg);
-          background: var(--surface-table-row-alt);
-        }
-
-        .message-item div {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: var(--space-2);
-          margin-bottom: var(--space-2);
-          font-size: var(--text-xs);
-        }
-
-        .message-item p {
-          color: var(--text-primary);
-          font-size: var(--text-sm);
-          line-height: var(--leading-normal);
-        }
-
-        .module-strip {
-          display: flex;
-          flex-wrap: wrap;
-          gap: var(--space-2);
-          margin-top: var(--space-6);
-        }
-
-        @media (max-width: 1100px) {
-          .stats-grid,
-          .dashboard-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-        }
-
-        @media (max-width: 700px) {
-          .stats-grid,
-          .dashboard-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
-    </>
-  )
+  return <>
+    <PageHeader title="Dashboard" description={`${org?.name ?? 'Organisation'} / ${tenant.name}`} />
+    <section className="cards">{cards.map((card) => <Card key={card.label}><p>{card.label}</p><strong>{card.value}</strong></Card>)}</section>
+    <section className="grid">
+      <DataTable columns={[{ key: 'movement_date', header: 'Date' }, { key: 'movement_type', header: 'Type' }, { key: 'qty', header: 'Qty', align: 'right' }, { key: 'ref_table', header: 'Ref', render: (v) => v || '-' }]} data={movements} loading={loading} emptyTitle="No recent movements" emptyMessage="Inventory activity will appear here." />
+      <DataTable columns={[{ key: 'payment_date', header: 'Date' }, { key: 'kind', header: 'Type' }, { key: 'party', header: 'Party' }, { key: 'amount', header: 'Amount', align: 'right', render: (v) => formatMoney(Number(v ?? 0)) }]} data={payments} loading={loading} emptyTitle="No recent payments" emptyMessage="Customer and vendor payment events show here." />
+    </section>
+    <style jsx>{`.cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--space-4);margin-bottom:var(--space-6)} p{margin:0;color:var(--text-secondary);font-size:var(--text-xs)} strong{display:block;margin-top:var(--space-2);font-size:var(--text-3xl)} .grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6)} @media(max-width:1200px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}} @media(max-width:900px){.cards,.grid{grid-template-columns:1fr}}`}</style>
+  </>
 }

@@ -10,9 +10,10 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { canTransitionSalesStatus, isSalesEditable } from '@/lib/transactions'
 
 const PACKAGING_TYPES = ['Packet', 'Box', 'Carton', 'Piece']
-const ORDER_STATUSES = ['draft', 'confirmed', 'dispatched', 'invoiced', 'cancelled']
+const ORDER_STATUSES = ['draft', 'confirmed', 'dispatched', 'invoiced', 'paid', 'cancelled']
 
 interface SalesOrder {
   id: string
@@ -71,6 +72,7 @@ export default function SalesOrderDetailPage() {
   const [error, setError] = useState('')
 
   const canUpdate = permissions?.is_admin || permissions?.module_permissions.sales?.can_update
+  const canEditLines = canUpdate && isSalesEditable(order?.status)
 
   useEffect(() => {
     if (!tenant?.id || !orderId) {
@@ -134,6 +136,10 @@ export default function SalesOrderDetailPage() {
   async function handleAddItem(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!tenant?.id || !orderId) return
+    if (!canEditLines) {
+      setError('Line items can only be edited in draft or confirmed status.')
+      return
+    }
 
     setSavingItem(true)
     setError('')
@@ -165,6 +171,11 @@ export default function SalesOrderDetailPage() {
 
   async function handleStatusSave() {
     if (!tenant?.id || !orderId) return
+    if (!order) return
+    if (!canTransitionSalesStatus(order.status, status)) {
+      setError(`Invalid status transition from ${order.status ?? 'draft'} to ${status}.`)
+      return
+    }
 
     setSavingStatus(true)
     setError('')
@@ -280,7 +291,9 @@ export default function SalesOrderDetailPage() {
           <div className="status-row">
             <select value={status} onChange={(event) => setStatus(event.target.value)} disabled={!canUpdate}>
               {ORDER_STATUSES.map((statusOption) => (
-                <option key={statusOption} value={statusOption}>{statusOption}</option>
+                <option key={statusOption} value={statusOption} disabled={!canTransitionSalesStatus(order.status, statusOption)}>
+                  {statusOption}
+                </option>
               ))}
             </select>
             <Button onClick={handleStatusSave} loading={savingStatus} disabled={!canUpdate}>
@@ -300,7 +313,7 @@ export default function SalesOrderDetailPage() {
                 value={itemForm.product_id}
                 onChange={(event) => setItemForm((prev) => ({ ...prev, product_id: event.target.value }))}
                 required
-                disabled={!canUpdate || products.length === 0}
+                disabled={!canEditLines || products.length === 0}
               >
                 {products.length === 0 ? (
                   <option value="">No products available</option>
@@ -319,7 +332,7 @@ export default function SalesOrderDetailPage() {
               <select
                 value={itemForm.packaging_type}
                 onChange={(event) => setItemForm((prev) => ({ ...prev, packaging_type: event.target.value }))}
-                disabled={!canUpdate}
+                disabled={!canEditLines}
               >
                 {PACKAGING_TYPES.map((packagingType) => (
                   <option key={packagingType} value={packagingType}>{packagingType}</option>
@@ -327,11 +340,11 @@ export default function SalesOrderDetailPage() {
               </select>
             </label>
 
-            <Input label="Quantity" type="number" min="0" step="0.01" value={itemForm.ordered_qty} onChange={(event) => setItemForm((prev) => ({ ...prev, ordered_qty: event.target.value }))} required disabled={!canUpdate} />
-            <Input label="Unit price" type="number" min="0" step="0.01" value={itemForm.unit_price} onChange={(event) => setItemForm((prev) => ({ ...prev, unit_price: event.target.value }))} required disabled={!canUpdate} />
-            <Input label="Discount %" type="number" min="0" max="100" step="0.01" value={itemForm.discount_pct} onChange={(event) => setItemForm((prev) => ({ ...prev, discount_pct: event.target.value }))} disabled={!canUpdate} />
+            <Input label="Quantity" type="number" min="0" step="0.01" value={itemForm.ordered_qty} onChange={(event) => setItemForm((prev) => ({ ...prev, ordered_qty: event.target.value }))} required disabled={!canEditLines} />
+            <Input label="Unit price" type="number" min="0" step="0.01" value={itemForm.unit_price} onChange={(event) => setItemForm((prev) => ({ ...prev, unit_price: event.target.value }))} required disabled={!canEditLines} />
+            <Input label="Discount %" type="number" min="0" max="100" step="0.01" value={itemForm.discount_pct} onChange={(event) => setItemForm((prev) => ({ ...prev, discount_pct: event.target.value }))} disabled={!canEditLines} />
             {error && <p className="form-error">{error}</p>}
-            <Button type="submit" loading={savingItem} disabled={!canUpdate || products.length === 0} fullWidth>
+            <Button type="submit" loading={savingItem} disabled={!canEditLines || products.length === 0} fullWidth>
               Add item
             </Button>
           </form>
