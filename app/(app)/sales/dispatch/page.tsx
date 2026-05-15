@@ -10,6 +10,8 @@ import Input from '@/components/ui/Input'
 import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import { generateNextCode } from '@/lib/numberSeries'
 
 interface Row { id: string; do_code: string; dispatch_date: string; status: string | null; sales_orders: { so_code: string } | null; customers: { customer_name: string } | null }
 interface OrderOption { id: string; so_code: string; customer_id: string; status: string | null; customers: { customer_name: string } | null }
@@ -19,7 +21,7 @@ export default function DispatchPage() {
   const router = useRouter()
   const [rows, setRows] = useState<Row[]>([])
   const [orders, setOrders] = useState<OrderOption[]>([])
-  const [form, setForm] = useState({ do_code: '', so_id: '', dispatch_date: new Date().toISOString().split('T')[0], vehicle_no: '', driver_name: '' })
+  const [form, setForm] = useState({ so_id: '', dispatch_date: new Date().toISOString().split('T')[0], vehicle_no: '', driver_name: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -47,7 +49,15 @@ export default function DispatchPage() {
       setError('Dispatch can only be created for confirmed sales orders.')
       return
     }
-    await supabase.from('dispatch_orders').insert({ tenant_id: tenant.id, do_code: form.do_code, so_id: form.so_id, customer_id: selected?.customer_id, dispatch_date: form.dispatch_date, vehicle_no: form.vehicle_no || null, driver_name: form.driver_name || null, status: 'draft' })
+    let dispatchCode = ''
+    try {
+      dispatchCode = (await generateNextCode(tenant.id, 'dispatch_order')).code
+    } catch (seriesError: any) {
+      setSaving(false)
+      setError(`${seriesError.message} Configure Number Series in Configuration.`)
+      return
+    }
+    await supabase.from('dispatch_orders').insert({ tenant_id: tenant.id, do_code: dispatchCode, so_id: form.so_id, customer_id: selected?.customer_id, dispatch_date: form.dispatch_date, vehicle_no: form.vehicle_no || null, driver_name: form.driver_name || null, status: 'draft' })
     await supabase.from('sales_orders').update({ status: 'dispatched' }).eq('tenant_id', tenant.id).eq('id', form.so_id)
     setSaving(false); await fetchData(tenant.id)
   }
@@ -60,11 +70,13 @@ export default function DispatchPage() {
     { key: 'status', header: 'Status', render: (v) => <Badge variant={STATUS_BADGE[String(v ?? 'draft')] ?? 'default'}>{String(v ?? 'draft')}</Badge> },
   ], [])
 
+  if (!tenant) return <TenantSetupNotice title="Dispatch" description="Select or create a factory before creating dispatch orders." />
+
   return <>
     <PageHeader title="Dispatch" description="Create minimal dispatch headers from sales orders." />
     <section className="layout">
       <Card><h2>Create dispatch</h2><form onSubmit={createDispatch}>
-        <Input label="Dispatch no." value={form.do_code} onChange={(e) => setForm((p) => ({ ...p, do_code: e.target.value }))} required />
+        <Input label="Dispatch number" value="Auto-generated from Number Series" disabled />
         <label><span>Sales order</span><select value={form.so_id} onChange={(e) => setForm((p) => ({ ...p, so_id: e.target.value }))}>{orders.map((order) => <option key={order.id} value={order.id}>{order.so_code} - {order.customers?.customer_name}</option>)}</select></label>
         <Input label="Dispatch date" type="date" value={form.dispatch_date} onChange={(e) => setForm((p) => ({ ...p, dispatch_date: e.target.value }))} required />
         <Input label="Vehicle no." value={form.vehicle_no} onChange={(e) => setForm((p) => ({ ...p, vehicle_no: e.target.value }))} />

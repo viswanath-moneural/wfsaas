@@ -10,13 +10,15 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import { formatMoney } from '@/lib/transactions'
+import { generateNextCode } from '@/lib/numberSeries'
+import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 
 export default function VendorPaymentsPage() {
   const { tenant, permissions } = useAuth()
   const router = useRouter()
   const [rows, setRows] = useState<any[]>([])
   const [poOptions, setPoOptions] = useState<any[]>([])
-  const [form, setForm] = useState({ payment_code: '', po_id: '', payment_date: new Date().toISOString().split('T')[0], amount: '0', payment_method: 'bank' })
+  const [form, setForm] = useState({ po_id: '', payment_date: new Date().toISOString().split('T')[0], amount: '0', payment_method: 'bank' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -36,17 +38,26 @@ export default function VendorPaymentsPage() {
     setSaving(true)
     const supabase = getSupabaseClient()
     const selected = poOptions.find((item) => item.id === form.po_id)
-    const { data } = await supabase.from('vendor_payments').insert({ tenant_id: tenant.id, payment_code: form.payment_code || null, po_id: form.po_id, vendor_id: selected?.vendor_id, payment_date: form.payment_date, amount: Number(form.amount), payment_method: form.payment_method }).select('id').single()
+    let paymentCode = ''
+    try {
+      paymentCode = (await generateNextCode(tenant.id, 'vendor_payment')).code
+    } catch (seriesError: any) {
+      setSaving(false)
+      setError(`${seriesError.message} Configure Number Series in Configuration.`)
+      return
+    }
+    const { data } = await supabase.from('vendor_payments').insert({ tenant_id: tenant.id, payment_code: paymentCode, po_id: form.po_id, vendor_id: selected?.vendor_id, payment_date: form.payment_date, amount: Number(form.amount), payment_method: form.payment_method }).select('id').single()
     setSaving(false); await load(tenant.id); if (data?.id) router.push(`/purchases/payments/${data.id}`)
   }
   const columns: Column<any>[] = useMemo(() => [
     { key: 'payment_code', header: 'Payment No.', render: (v) => v || '-' }, { key: 'purchase_orders', header: 'PO', render: (_v, r) => r.purchase_orders?.po_code ?? '-' }, { key: 'vendors', header: 'Vendor', render: (_v, r) => r.vendors?.vendor_name ?? '-' }, { key: 'payment_date', header: 'Date' }, { key: 'amount', header: 'Amount', align: 'right', render: (v) => formatMoney(Number(v ?? 0)) },
   ], [])
+  if (!tenant) return <TenantSetupNotice title="Vendor Payments" description="Select or create a factory before recording vendor payments." />
   return <>
     <PageHeader title="Vendor Payments" description="Capture vendor payments against purchase orders." />
     <section className="layout">
       <Card><h2>Record payment</h2><form onSubmit={create}>
-        <Input label="Payment no." value={form.payment_code} onChange={(e) => setForm((p) => ({ ...p, payment_code: e.target.value }))} />
+        <Input label="Payment number" value="Auto-generated from Number Series" disabled />
         <label><span>PO</span><select value={form.po_id} onChange={(e) => setForm((p) => ({ ...p, po_id: e.target.value }))}>{poOptions.map((po) => <option key={po.id} value={po.id}>{po.po_code} - {po.vendors?.vendor_name}</option>)}</select></label>
         <Input label="Date" type="date" value={form.payment_date} onChange={(e) => setForm((p) => ({ ...p, payment_date: e.target.value }))} />
         <Input label="Amount" type="number" min="0" step="0.01" value={form.amount} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))} />

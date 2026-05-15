@@ -10,6 +10,8 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import { formatMoney } from '@/lib/transactions'
+import { generateNextCode } from '@/lib/numberSeries'
+import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 
 interface PaymentRow { id: string; payment_code: string | null; payment_date: string; amount_paid: number; invoices: { invoice_no: string } | null; customers: { customer_name: string } | null }
 interface InvoiceOption { id: string; invoice_no: string; customer_id: string; status: string | null; customers: { customer_name: string } | null }
@@ -19,7 +21,7 @@ export default function CustomerPaymentsPage() {
   const router = useRouter()
   const [rows, setRows] = useState<PaymentRow[]>([])
   const [invoices, setInvoices] = useState<InvoiceOption[]>([])
-  const [form, setForm] = useState({ payment_code: '', invoice_id: '', payment_date: new Date().toISOString().split('T')[0], amount_paid: '0', payment_mode: 'bank' })
+  const [form, setForm] = useState({ invoice_id: '', payment_date: new Date().toISOString().split('T')[0], amount_paid: '0', payment_mode: 'bank' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -52,7 +54,15 @@ export default function CustomerPaymentsPage() {
       setError('Cannot post payment against cancelled invoice.')
       return
     }
-    await supabase.from('customer_payments').insert({ tenant_id: tenant.id, payment_code: form.payment_code || null, invoice_id: form.invoice_id, customer_id: selected?.customer_id, payment_date: form.payment_date, amount_paid: Number(form.amount_paid), payment_mode: form.payment_mode })
+    let paymentCode = ''
+    try {
+      paymentCode = (await generateNextCode(tenant.id, 'customer_payment')).code
+    } catch (seriesError: any) {
+      setSaving(false)
+      setError(`${seriesError.message} Configure Number Series in Configuration.`)
+      return
+    }
+    await supabase.from('customer_payments').insert({ tenant_id: tenant.id, payment_code: paymentCode, invoice_id: form.invoice_id, customer_id: selected?.customer_id, payment_date: form.payment_date, amount_paid: Number(form.amount_paid), payment_mode: form.payment_mode })
     const { data: allPayments } = await supabase.from('customer_payments').select('amount_paid').eq('invoice_id', form.invoice_id)
     const paid = (allPayments ?? []).reduce((sum: number, row: any) => sum + Number(row.amount_paid ?? 0), 0)
     const { data: invoice } = await supabase.from('invoices').select('total_amount').eq('id', form.invoice_id).single()
@@ -71,11 +81,13 @@ export default function CustomerPaymentsPage() {
     { key: 'amount_paid', header: 'Amount', align: 'right', render: (v) => formatMoney(Number(v ?? 0)) },
   ], [])
 
+  if (!tenant) return <TenantSetupNotice title="Customer Payments" description="Select or create a factory before recording payments." />
+
   return <>
     <PageHeader title="Customer Payments" description="Track receipts against sales invoices." />
     <section className="layout">
       <Card><h2>Record payment</h2><form onSubmit={createPayment}>
-        <Input label="Payment code" value={form.payment_code} onChange={(e) => setForm((p) => ({ ...p, payment_code: e.target.value }))} />
+        <Input label="Payment code" value="Auto-generated from Number Series" disabled />
         <label><span>Invoice</span><select value={form.invoice_id} onChange={(e) => setForm((p) => ({ ...p, invoice_id: e.target.value }))}>{invoices.map((invoice) => <option key={invoice.id} value={invoice.id}>{invoice.invoice_no} - {invoice.customers?.customer_name}</option>)}</select></label>
         <Input label="Date" type="date" value={form.payment_date} onChange={(e) => setForm((p) => ({ ...p, payment_date: e.target.value }))} required />
         <Input label="Amount" type="number" min="0" step="0.01" value={form.amount_paid} onChange={(e) => setForm((p) => ({ ...p, amount_paid: e.target.value }))} required />

@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 
 interface WarehouseRow {
   id: string
@@ -109,7 +110,7 @@ export default function WarehousesPage() {
   ], [])
 
   if (!tenant) {
-    return <PageHeader title="Warehouses" description="Select or create a factory before creating warehouse masters." />
+    return <TenantSetupNotice title="Warehouses" description="Select or create a factory before creating warehouse masters." />
   }
 
   return (

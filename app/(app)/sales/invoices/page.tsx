@@ -11,6 +11,8 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import { calcInvoiceTotals } from '@/lib/transactions'
+import { generateNextCode } from '@/lib/numberSeries'
+import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 
 interface Row { id: string; invoice_no: string; invoice_date: string; status: string | null; total_amount: number | null; sales_orders: { so_code: string } | null; customers: { customer_name: string } | null }
 interface OrderOption { id: string; so_code: string; customer_id: string; status: string | null; customers: { customer_name: string } | null }
@@ -20,7 +22,7 @@ export default function SalesInvoicesPage() {
   const router = useRouter()
   const [rows, setRows] = useState<Row[]>([])
   const [orders, setOrders] = useState<OrderOption[]>([])
-  const [form, setForm] = useState({ invoice_no: '', so_id: '', invoice_date: new Date().toISOString().split('T')[0], due_date: '' })
+  const [form, setForm] = useState({ so_id: '', invoice_date: new Date().toISOString().split('T')[0], due_date: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -58,8 +60,16 @@ export default function SalesInvoicesPage() {
       setError('Invoice can only be created for confirmed or dispatched orders.')
       return
     }
+    let invoiceNo = ''
+    try {
+      invoiceNo = (await generateNextCode(tenant.id, 'invoice')).code
+    } catch (seriesError: any) {
+      setSaving(false)
+      setError(`${seriesError.message} Configure Number Series in Configuration.`)
+      return
+    }
     const { data: inserted, error: insertError } = await supabase.from('invoices').insert({
-      tenant_id: tenant.id, invoice_no: form.invoice_no, so_id: form.so_id, customer_id: selected?.customer_id, invoice_date: form.invoice_date,
+      tenant_id: tenant.id, invoice_no: invoiceNo, so_id: form.so_id, customer_id: selected?.customer_id, invoice_date: form.invoice_date,
       due_date: form.due_date || null, subtotal: totals.subtotal, discount_amt: totals.discount, taxable_value: totals.taxable, total_amount: totals.total, status: 'draft',
     }).select('id').single()
     if (insertError) { setError(insertError.message); setSaving(false); return }
@@ -78,11 +88,13 @@ export default function SalesInvoicesPage() {
     { key: 'status', header: 'Status', render: (v) => <Badge variant={STATUS_BADGE[String(v ?? 'draft')] ?? 'default'}>{String(v ?? 'draft')}</Badge> },
   ], [])
 
+  if (!tenant) return <TenantSetupNotice title="Invoices" description="Select or create a factory before creating invoices." />
+
   return <>
     <PageHeader title="Invoices" description="Create invoices from sales orders and track payment state." />
     <section className="layout">
       <Card><h2>Create Invoice</h2><form onSubmit={createInvoice}>
-        <Input label="Invoice number" value={form.invoice_no} onChange={(e) => setForm((p) => ({ ...p, invoice_no: e.target.value }))} required />
+        <Input label="Invoice number" value="Auto-generated from Number Series" disabled />
         <label><span>Sales order</span><select value={form.so_id} onChange={(e) => setForm((p) => ({ ...p, so_id: e.target.value }))} required>{orders.map((order) => <option key={order.id} value={order.id}>{order.so_code} - {order.customers?.customer_name}</option>)}</select></label>
         <Input label="Invoice date" type="date" value={form.invoice_date} onChange={(e) => setForm((p) => ({ ...p, invoice_date: e.target.value }))} required />
         <Input label="Due date" type="date" value={form.due_date} onChange={(e) => setForm((p) => ({ ...p, due_date: e.target.value }))} />

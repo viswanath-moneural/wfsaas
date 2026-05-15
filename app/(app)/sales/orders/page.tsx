@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Card from '@/components/Card'
 import DataTable, { type Column } from '@/components/DataTable'
 import PageHeader from '@/components/layout/PageHeader'
@@ -10,6 +11,8 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import { generateNextCode } from '@/lib/numberSeries'
 
 interface CustomerOption {
   id: string
@@ -29,7 +32,6 @@ interface SalesOrderRow {
 }
 
 const EMPTY_FORM = {
-  so_code: '',
   customer_id: '',
   order_date: new Date().toISOString().split('T')[0],
   expected_date: '',
@@ -97,15 +99,23 @@ export default function SalesOrdersPage() {
     setError('')
 
     const supabase = getSupabaseClient()
+    let soCode = ''
+    try {
+      soCode = (await generateNextCode(tenant.id, 'sales_order')).code
+    } catch (seriesError: any) {
+      setSaving(false)
+      setError(`${seriesError.message} Configure Number Series in Configuration.`)
+      return
+    }
     const { error: insertError } = await supabase.from('sales_orders').insert({
       tenant_id: tenant.id,
-      so_code: form.so_code.trim(),
+      so_code: soCode,
       customer_id: form.customer_id,
       order_date: form.order_date,
       expected_date: form.expected_date || null,
       status: form.status,
       notes: form.notes.trim() || null,
-      name: form.so_code.trim(),
+      name: soCode,
     })
 
     setSaving(false)
@@ -150,12 +160,7 @@ export default function SalesOrdersPage() {
   ], [])
 
   if (!tenant) {
-    return (
-      <PageHeader
-        title="Sales Orders"
-        description="Select or create a factory before creating sales orders."
-      />
-    )
+    return <TenantSetupNotice title="Sales Orders" description="Select or create a factory before creating sales orders." />
   }
 
   return (
@@ -169,14 +174,7 @@ export default function SalesOrdersPage() {
         <Card>
           <h2>Create Order</h2>
           <form onSubmit={handleSubmit}>
-            <Input
-              label="Order number"
-              value={form.so_code}
-              onChange={(event) => setForm((prev) => ({ ...prev, so_code: event.target.value }))}
-              placeholder="SO-0001"
-              required
-              disabled={!canCreate}
-            />
+            <Input label="Order number" value="Auto-generated from Number Series" disabled />
 
             <label>
               <span>Customer</span>
@@ -236,6 +234,9 @@ export default function SalesOrdersPage() {
             />
 
             {error && <p className="form-error">{error}</p>}
+            {customers.length === 0 && (
+              <p className="helper-link">No customers yet. <Link href="/configuration/customers">Add customer</Link></p>
+            )}
             <Button
               type="submit"
               loading={saving}
@@ -252,7 +253,7 @@ export default function SalesOrdersPage() {
           data={orders}
           loading={loading}
           emptyTitle="No sales orders found"
-          emptyMessage="Create your first order after adding customers and products."
+          emptyMessage="Add customers in Configuration first, then create your first order."
           searchable
           searchPlaceholder="Search orders..."
           onRowClick={(row) => router.push(`/sales/orders/${row.id}`)}
@@ -305,6 +306,14 @@ export default function SalesOrdersPage() {
           margin: 0;
           color: var(--text-danger);
           font-size: var(--text-sm);
+        }
+        .helper-link {
+          margin: 0;
+          color: var(--text-secondary);
+          font-size: var(--text-sm);
+        }
+        .helper-link :global(a) {
+          color: var(--color-primary-700);
         }
 
         @media (max-width: 920px) {

@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 
 interface VendorRow {
   id: string
@@ -103,7 +104,7 @@ export default function VendorsPage() {
   ], [])
 
   if (!tenant) {
-    return <PageHeader title="Vendors" description="Select or create a factory before creating vendor masters." />
+    return <TenantSetupNotice title="Vendors" description="Select or create a factory before creating vendor masters." />
   }
 
   return (

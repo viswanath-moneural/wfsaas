@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 
 interface CustomerRow {
   id: string
@@ -110,7 +111,7 @@ export default function CustomersPage() {
   ], [])
 
   if (!tenant) {
-    return <PageHeader title="Customers" description="Select or create a factory before creating customer masters." />
+    return <TenantSetupNotice title="Customers" description="Select or create a factory before creating customer masters." />
   }
 
   return (

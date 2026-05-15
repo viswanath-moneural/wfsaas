@@ -2,9 +2,11 @@
 
 import Button from '@/components/ui/Button'
 import { useAuth } from '@/lib/AuthContext'
+import Link from 'next/link'
 
 export default function TopBar() {
-  const { user, org, tenant, allTenants, switchTenant, signOut, isLoading } = useAuth()
+  const { user, org, tenant, allTenants, switchTenant, signOut, isLoading, permissions } = useAuth()
+  const showFactoryCta = !tenant && (permissions?.is_admin ?? false)
 
   return (
     <header className="topbar">
@@ -14,18 +16,24 @@ export default function TopBar() {
       </div>
 
       <div className="topbar__actions">
-        {allTenants.length > 1 && (
+        {allTenants.length >= 1 && (
           <select
             value={tenant?.id ?? ''}
             onChange={(event) => switchTenant(event.target.value)}
             aria-label="Switch factory"
           >
+            {!tenant && <option value="" disabled>Select factory</option>}
             {allTenants.map((tenantItem) => (
               <option key={tenantItem.id} value={tenantItem.id}>
                 {tenantItem.name}
               </option>
             ))}
           </select>
+        )}
+        {showFactoryCta && allTenants.length === 0 && (
+          <Link href="/configuration/tenants">
+            <Button size="sm">Create first factory</Button>
+          </Link>
         )}
         <span className="topbar__user">{user?.full_name ?? user?.email ?? ''}</span>
         <Button variant="outline" size="sm" onClick={signOut}>
