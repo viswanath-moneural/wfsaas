@@ -146,10 +146,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         `)
         .eq('user_id', userId)
         .eq('is_active', true)
-        .single()
+        .maybeSingle()
 
       const roleName = (userRoleData?.roles as any)?.role_name ?? userData.role
-      const isAdmin  = roleName === 'admin' || roleName === 'superadmin'
+      const appRole = String(userData.role ?? '').toLowerCase()
+      const resolvedRole = String(roleName ?? '').toLowerCase()
+      const isAdmin =
+        appRole === 'superadmin' ||
+        resolvedRole === 'superadmin' ||
+        appRole === 'admin' ||
+        resolvedRole === 'admin' ||
+        appRole === 'owner' ||
+        resolvedRole === 'owner'
 
       const modulePermissions: Record<string, any> = {}
       ;((userRoleData as any)?.role_permissions ?? []).forEach((rp: any) => {
