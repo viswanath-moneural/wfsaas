@@ -3,6 +3,28 @@
 Multi-tenant ERP SaaS for manufacturing and trading businesses.  
 Stack: Next.js 16 + Supabase + Vercel + Meta WhatsApp webhook.
 
+## Current Status
+
+1. MVP 1 progress: approximately 40%
+2. Branch: `feature/mvp-foundation`
+3. Last completed slice:
+   - Configuration masters (tenants/products/materials/customers/vendors/warehouses)
+   - Sales orders foundation (header create/list + detail + line items + status update)
+4. Not yet started in UI:
+   - Purchases (PO/GRN)
+   - Inventory operational pages
+   - Sales invoices and customer payments UI
+5. Build state: passing in recent local and preview runs
+
+## Latest Changes (Recent)
+
+1. Protected app route groups with auth callback and app shell.
+2. Tenant-aware dashboard switched to `pack_quantity`.
+3. Module-aware navigation and permission-aware pages.
+4. Configuration module expanded with six master pages.
+5. Sales orders now include detail route and line-item entry.
+6. Added Supabase migration draft for Salesforce-style party/customer/vendor/contact model.
+
 ## Current Vercel Build Status
 
 From current codebase state:
