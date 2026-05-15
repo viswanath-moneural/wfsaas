@@ -57,17 +57,36 @@ export default function TenantsPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!org?.id) {
-      setError('No organisation mapped to this login. Set org_id in users table and relogin.')
+    const supabase = getSupabaseClient()
+    let targetOrgId = org?.id ?? null
+    if (!targetOrgId && role === 'superadmin') {
+      const { data: fallbackOrg } = await supabase
+        .from('organisations')
+        .select('id')
+        .eq('slug', 'wfsaas-platform')
+        .maybeSingle()
+      if (fallbackOrg?.id) {
+        targetOrgId = fallbackOrg.id
+      } else {
+        const { data: firstOrg } = await supabase
+          .from('organisations')
+          .select('id')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+        targetOrgId = firstOrg?.id ?? null
+      }
+    }
+    if (!targetOrgId) {
+      setError('No organisation available. Create one from Configuration > Organisation.')
       return
     }
 
     setSaving(true)
     setError('')
 
-    const supabase = getSupabaseClient()
     const { error: insertError } = await supabase.from('tenants').insert({
-      org_id: org.id,
+      org_id: targetOrgId,
       name: form.name.trim(),
       phone: form.phone.trim() || null,
       address: form.address.trim() || null,
@@ -82,7 +101,7 @@ export default function TenantsPage() {
     }
 
     setForm(EMPTY_FORM)
-    await fetchTenants(org.id)
+    await fetchTenants(targetOrgId)
     await refreshAuth()
   }
 
@@ -136,7 +155,7 @@ export default function TenantsPage() {
             />
             {error && <p className="form-error">{error}</p>}
             {!canEdit && <p className="form-hint">You do not have permission to create factories.</p>}
-            {!org?.id && <p className="form-hint">Organisation context missing for current user.</p>}
+            {!org?.id && role !== 'superadmin' && <p className="form-hint">Organisation context missing for current user.</p>}
             <Button type="submit" loading={saving} disabled={!canEdit} fullWidth>
               Add factory
             </Button>

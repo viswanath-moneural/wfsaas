@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import TopBar from '@/components/layout/TopBar'
+import MobileNav from '@/components/layout/MobileNav'
 
 export default function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -12,6 +13,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <TopBar />
         <div className="app-shell__content">{children}</div>
       </div>
+      <MobileNav />
 
       <style jsx>{`
         .app-shell {
@@ -41,6 +43,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
           .app-shell__content {
             padding: var(--content-padding-mobile);
+            padding-bottom: calc(var(--content-padding-mobile) + 72px);
           }
         }
       `}</style>

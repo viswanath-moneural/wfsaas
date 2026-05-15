@@ -8,6 +8,11 @@ export default function TopBar() {
   const { user, org, tenant, allTenants, switchTenant, signOut, isLoading, permissions } = useAuth()
   const showFactoryCta = !tenant && (permissions?.is_admin ?? false)
 
+  async function handleSignOut() {
+    await signOut()
+    window.location.href = '/login'
+  }
+
   return (
     <header className="topbar">
       <div className="topbar__context">
@@ -36,7 +41,7 @@ export default function TopBar() {
           </Link>
         )}
         <span className="topbar__user">{user?.full_name ?? user?.email ?? ''}</span>
-        <Button variant="outline" size="sm" onClick={signOut}>
+        <Button variant="outline" size="sm" onClick={handleSignOut}>
           Sign out
         </Button>
       </div>

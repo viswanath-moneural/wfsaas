@@ -6,6 +6,11 @@ import PageHeader from '@/components/layout/PageHeader'
 
 const CONFIG_SECTIONS = [
   {
+    title: 'Organisation',
+    description: 'Create and manage organisations (platform superadmin controls).',
+    href: '/configuration/organisation',
+  },
+  {
     title: 'Factories',
     description: 'Manage branches, plants, and tenant-level operating units.',
     href: '/configuration/tenants',
@@ -36,9 +41,14 @@ const CONFIG_SECTIONS = [
     href: '/configuration/warehouses',
   },
   {
-    title: 'Users & Roles',
-    description: 'Invite users and control module permissions.',
+    title: 'Users',
+    description: 'Create users and map factory + role assignments.',
     href: '/configuration/users',
+  },
+  {
+    title: 'Roles',
+    description: 'Create and manage org roles for permission strategy.',
+    href: '/configuration/roles',
   },
   {
     title: 'Modules',

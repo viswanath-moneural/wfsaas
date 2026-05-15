@@ -96,18 +96,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (userError || !userData) throw userError
 
-      // 2. Load organisation
-      const { data: orgData } = await supabase
-        .from('organisations')
-        .select('*')
-        .eq('id', userData.org_id)
-        .single()
+      const baseRole = String(userData.role ?? '').toLowerCase()
+      const isBaseSuperAdmin = baseRole === 'superadmin' || baseRole === 'owner' || baseRole === 'admin'
+
+      // 2. Load organisation (superadmin fallback if org_id is missing)
+      let orgData: Organisation | null = null
+      if (userData.org_id) {
+        const { data: orgById } = await supabase
+          .from('organisations')
+          .select('*')
+          .eq('id', userData.org_id)
+          .maybeSingle()
+        orgData = (orgById as Organisation | null) ?? null
+      }
+
+      if (!orgData && isBaseSuperAdmin) {
+        const { data: preferredOrg } = await supabase
+          .from('organisations')
+          .select('*')
+          .eq('slug', 'wfsaas-platform')
+          .maybeSingle()
+
+        if (preferredOrg) {
+          orgData = preferredOrg as Organisation
+        } else {
+          const { data: firstOrg } = await supabase
+            .from('organisations')
+            .select('*')
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle()
+          orgData = (firstOrg as Organisation | null) ?? null
+        }
+      }
 
       // 3. Load tenants for this org
+      const effectiveOrgId = (orgData?.id ?? userData.org_id) as string | null
+
       const { data: tenantsData } = await supabase
         .from('tenants')
         .select('*')
-        .eq('org_id', userData.org_id)
+        .eq('org_id', effectiveOrgId ?? '')
         .eq('is_active', true)
         .order('name')
 
@@ -115,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 4. Determine active tenant
       const storedTenantId = typeof window !== 'undefined'
-        ? localStorage.getItem(`active_tenant_${userData.org_id}`)
+        ? localStorage.getItem(`active_tenant_${effectiveOrgId ?? userData.org_id}`)
         : null
 
       const activeTenant = allTenants.find(t =>
@@ -126,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: modulesData } = await supabase
         .from('org_modules')
         .select('module_key, is_enabled')
-        .eq('org_id', userData.org_id)
+        .eq('org_id', effectiveOrgId ?? '')
 
       const enabledModules = (modulesData ?? [])
         .filter(m => m.is_enabled)
@@ -172,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setState({
         user: userData as CurrentUser,
-        org:  orgData  as Organisation,
+        org:  (orgData as Organisation | null) ?? null,
         tenant: activeTenant as Tenant,
         allTenants: allTenants as Tenant[],
         permissions: {
@@ -227,8 +256,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (!supabase) return
-
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut({ scope: 'global' })
+    } catch (err) {
+      console.error('[AuthContext] signOut failed:', err)
+    } finally {
+      if (typeof window !== 'undefined') {
+        Object.keys(localStorage)
+          .filter((key) => key.startsWith('active_tenant_'))
+          .forEach((key) => localStorage.removeItem(key))
+      }
+      setState({
+        user: null,
+        org: null,
+        tenant: null,
+        allTenants: [],
+        permissions: null,
+        isLoading: false,
+        isAuthenticated: false,
+      })
+    }
   }, [supabase])
 
   const switchTenant = useCallback(async (tenantId: string) => {
