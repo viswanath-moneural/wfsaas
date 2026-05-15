@@ -26,14 +26,15 @@ const EMPTY_FORM = {
 }
 
 export default function TenantsPage() {
-  const { org, refreshAuth, permissions } = useAuth()
+  const { org, user, refreshAuth, permissions } = useAuth()
   const [rows, setRows] = useState<TenantRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const canEdit = permissions?.is_admin ?? false
+  const role = String(user?.role ?? '').toLowerCase()
+  const canEdit = Boolean(permissions?.is_admin || role === 'superadmin' || role === 'owner' || role === 'admin')
 
   useEffect(() => {
     if (!org?.id) return
@@ -56,7 +57,10 @@ export default function TenantsPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!org?.id) return
+    if (!org?.id) {
+      setError('No organisation mapped to this login. Set org_id in users table and relogin.')
+      return
+    }
 
     setSaving(true)
     setError('')
@@ -131,6 +135,8 @@ export default function TenantsPage() {
               disabled={!canEdit}
             />
             {error && <p className="form-error">{error}</p>}
+            {!canEdit && <p className="form-hint">You do not have permission to create factories.</p>}
+            {!org?.id && <p className="form-hint">Organisation context missing for current user.</p>}
             <Button type="submit" loading={saving} disabled={!canEdit} fullWidth>
               Add factory
             </Button>
@@ -172,6 +178,11 @@ export default function TenantsPage() {
         .form-error {
           margin: 0;
           color: var(--text-danger);
+          font-size: var(--text-sm);
+        }
+        .form-hint {
+          margin: 0;
+          color: var(--text-secondary);
           font-size: var(--text-sm);
         }
 
