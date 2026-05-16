@@ -47,6 +47,7 @@ export interface CurrentUser {
 export interface AuthState {
   user:        CurrentUser | null
   org:         Organisation | null
+  allOrganisations: Organisation[]
   tenant:      Tenant | null
   allTenants:  Tenant[]          // All tenants in this org (for switcher)
   permissions: UserPermissions | null
@@ -57,6 +58,7 @@ export interface AuthState {
 interface AuthContextValue extends AuthState {
   signOut:       () => Promise<void>
   switchTenant:  (tenantId: string) => Promise<void>
+  switchOrgContext: (orgId: string) => Promise<void>
   refreshAuth:   () => Promise<void>
 }
 
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user:            null,
     org:             null,
+    allOrganisations: [],
     tenant:          null,
     allTenants:      [],
     permissions:     null,
@@ -102,9 +105,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const baseRole = String(userData.role ?? '').toLowerCase()
       const isBasePrivileged = isPrivilegedRole(baseRole)
+      const isBaseSuperadmin = baseRole === 'superadmin'
 
       // 2. Load organisation (privileged fallback if org_id is missing)
       let orgData: Organisation | null = null
+      let allOrganisations: Organisation[] = []
+
+      if (isBaseSuperadmin) {
+        const { data: allOrgRows } = await supabase
+          .from('organisations')
+          .select('*')
+          .order('name')
+        allOrganisations = (allOrgRows ?? []) as Organisation[]
+      }
+
       if (userData.org_id) {
         const { data: orgById } = await supabase
           .from('organisations')
@@ -112,6 +126,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq('id', userData.org_id)
           .maybeSingle()
         orgData = (orgById as Organisation | null) ?? null
+      }
+
+      if (isBaseSuperadmin && typeof window !== 'undefined') {
+        const storedOrgId = localStorage.getItem('superadmin_view_org')
+        const storedOrg = allOrganisations.find((org) => org.id === storedOrgId)
+        if (storedOrg) orgData = storedOrg
       }
 
       if (!orgData && isBasePrivileged) {
@@ -170,26 +190,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!enabledModules.includes('configuration')) enabledModules.push('configuration')
 
       // 6. Load role permissions
-      const { data: userRoleData } = await supabase
+      const { data: userRolesData } = await supabase
         .from('user_roles')
         .select(`
           role_id,
-          roles ( role_name, is_system ),
-          role_permissions: role_permissions ( module_key, can_create, can_read, can_update, can_delete )
+          roles ( role_name, is_system )
         `)
         .eq('user_id', userId)
         .eq('is_active', true)
-        .maybeSingle()
+
+      const userRoleData = userRolesData?.[0] as any
+      const roleIds = (userRolesData ?? []).map((row: any) => row.role_id).filter(Boolean)
 
       const roleName = (userRoleData?.roles as any)?.role_name ?? userData.role
       const appRole = String(userData.role ?? '').toLowerCase()
       const resolvedRole = String(roleName ?? '').toLowerCase()
       const isAdmin = isPrivilegedRole(appRole) || isPrivilegedRole(resolvedRole)
+      const isSuperadmin = appRole === 'superadmin' || resolvedRole === 'superadmin'
 
       const modulePermissions: Record<string, any> = {}
-      ;((userRoleData as any)?.role_permissions ?? []).forEach((rp: any) => {
-        modulePermissions[rp.module_key] = rp
-      })
+      if (isSuperadmin) {
+        enabledModules.forEach((moduleKey) => {
+          modulePermissions[moduleKey] = {
+            module_key: moduleKey,
+            can_view: true,
+            can_create: true,
+            can_edit: true,
+            can_delete: true,
+            can_export: true,
+            can_approve: true,
+            can_read: true,
+            can_update: true,
+            canView: true,
+            canCreate: true,
+            canEdit: true,
+            canDelete: true,
+            canExport: true,
+            canApprove: true,
+          }
+        })
+      } else if (roleIds.length) {
+        const { data: permissionRows } = await (supabase as any)
+          .from('permissions')
+          .select('module_key, can_view, can_create, can_edit, can_delete, can_export, can_approve')
+          .in('role_id', roleIds)
+
+        const normalizedPermissionRows = ((permissionRows ?? []) as any[])
+        if (!normalizedPermissionRows.length) {
+          const { data: legacyPermissionRows } = await supabase
+            .from('role_permissions')
+            .select('module_key, can_create, can_read, can_update, can_delete')
+            .in('role_id', roleIds)
+          ;((legacyPermissionRows ?? []) as any[]).forEach((permission) => {
+            normalizedPermissionRows.push({
+              module_key: permission.module_key,
+              can_view: permission.can_read,
+              can_create: permission.can_create,
+              can_edit: permission.can_update,
+              can_delete: permission.can_delete,
+              can_export: false,
+              can_approve: false,
+            })
+          })
+        }
+
+        normalizedPermissionRows.forEach((permission) => {
+          const current = modulePermissions[permission.module_key]
+          modulePermissions[permission.module_key] = {
+            module_key: permission.module_key,
+            can_view: Boolean(current?.can_view || permission.can_view),
+            can_create: Boolean(current?.can_create || permission.can_create),
+            can_edit: Boolean(current?.can_edit || permission.can_edit),
+            can_delete: Boolean(current?.can_delete || permission.can_delete),
+            can_export: Boolean(current?.can_export || permission.can_export),
+            can_approve: Boolean(current?.can_approve || permission.can_approve),
+            can_read: Boolean(current?.can_read || permission.can_view),
+            can_update: Boolean(current?.can_update || permission.can_edit),
+            canView: Boolean(current?.canView || permission.can_view),
+            canCreate: Boolean(current?.canCreate || permission.can_create),
+            canEdit: Boolean(current?.canEdit || permission.can_edit),
+            canDelete: Boolean(current?.canDelete || permission.can_delete),
+            canExport: Boolean(current?.canExport || permission.can_export),
+            canApprove: Boolean(current?.canApprove || permission.can_approve),
+          }
+        })
+      }
 
       // 7. Load field permissions for this role
       const { data: fieldPermsData } = await supabase
@@ -200,12 +285,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState({
         user: userData as CurrentUser,
         org:  (orgData as Organisation | null) ?? null,
+        allOrganisations,
         tenant: activeTenant as Tenant,
         allTenants: allTenants as Tenant[],
         permissions: {
           role_name:          roleName,
           is_admin:           isAdmin,
           module_permissions: modulePermissions,
+          permissions_map:    modulePermissions,
           field_permissions:  fieldPermsData ?? [],
           enabled_modules:    enabledModules,
         },
@@ -244,7 +331,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setState({
           user: null, org: null, tenant: null, allTenants: [],
-          permissions: null, isLoading: false, isAuthenticated: false,
+          allOrganisations: [], permissions: null, isLoading: false, isAuthenticated: false,
         })
       }
     })
@@ -274,6 +361,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState({
         user: null,
         org: null,
+        allOrganisations: [],
         tenant: null,
         allTenants: [],
         permissions: null,
@@ -293,8 +381,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, tenant }))
   }, [state.allTenants, state.org])
 
+  const switchOrgContext = useCallback(async (orgId: string) => {
+    if (!state.user) return
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('superadmin_view_org', orgId)
+    }
+    await loadUserData(state.user.id)
+  }, [loadUserData, state.user])
+
   return (
-    <AuthContext.Provider value={{ ...state, signOut, switchTenant, refreshAuth }}>
+    <AuthContext.Provider value={{ ...state, signOut, switchTenant, switchOrgContext, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   )

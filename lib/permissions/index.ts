@@ -2,7 +2,7 @@
 // PERMISSION SYSTEM
 // ============================================================
 
-export type Action = 'create' | 'read' | 'update' | 'delete'
+export type Action = 'create' | 'read' | 'view' | 'update' | 'edit' | 'delete' | 'export' | 'approve'
 
 export interface ModulePermission {
   module_key: string
@@ -10,6 +10,16 @@ export interface ModulePermission {
   can_read:   boolean
   can_update: boolean
   can_delete: boolean
+  can_view?: boolean
+  can_edit?: boolean
+  can_export?: boolean
+  can_approve?: boolean
+  canView?: boolean
+  canCreate?: boolean
+  canEdit?: boolean
+  canDelete?: boolean
+  canExport?: boolean
+  canApprove?: boolean
 }
 
 export interface FieldPermission {
@@ -23,6 +33,7 @@ export interface UserPermissions {
   role_name:         string
   is_admin:          boolean
   module_permissions: Record<string, ModulePermission>
+  permissions_map?: Record<string, ModulePermission>
   field_permissions:  FieldPermission[]
   enabled_modules:    string[]   // from org_modules
 }
@@ -95,10 +106,16 @@ export function hasModuleAccess(
   if (!mp) return false
 
   switch (action) {
-    case 'create': return mp.can_create
-    case 'read':   return mp.can_read
-    case 'update': return mp.can_update
-    case 'delete': return mp.can_delete
+    case 'create': return Boolean(mp.can_create ?? mp.canCreate)
+    case 'read':
+    case 'view':
+      return Boolean(mp.can_read ?? mp.can_view ?? mp.canView)
+    case 'update':
+    case 'edit':
+      return Boolean(mp.can_update ?? mp.can_edit ?? mp.canEdit)
+    case 'delete': return Boolean(mp.can_delete ?? mp.canDelete)
+    case 'export': return Boolean(mp.can_export ?? mp.canExport)
+    case 'approve': return Boolean(mp.can_approve ?? mp.canApprove)
   }
 }
 

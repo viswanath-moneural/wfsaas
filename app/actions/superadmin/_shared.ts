@@ -31,8 +31,12 @@ export async function writeAuditLog(input: {
   action: string
   oldData?: unknown
   newData?: unknown
+  entityName?: string | null
+  ipAddress?: string | null
+  userAgent?: string | null
 }) {
   const timestamp = nowIso()
+  const changes = { before: input.oldData ?? null, after: input.newData ?? null }
   const { error } = await input.admin.from('audit_log').insert({
     org_id: input.orgId ?? input.actor.orgId,
     table_name: input.tableName,
@@ -44,6 +48,14 @@ export async function writeAuditLog(input: {
     changed_at: timestamp,
     created_at: timestamp,
     created_by: input.actor.userId,
+    actor_id: input.actor.userId,
+    actor_email: input.actor.appUser.email ?? input.actor.authUser.email ?? null,
+    entity_type: input.tableName,
+    entity_id: input.recordId ?? null,
+    entity_name: input.entityName ?? null,
+    changes,
+    ip_address: input.ipAddress ?? null,
+    user_agent: input.userAgent ?? null,
   })
 
   if (error) throw new Error(`Audit log failed: ${error.message}`)
