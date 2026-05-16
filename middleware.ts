@@ -15,6 +15,7 @@ const PUBLIC_ROUTES = [
   '/reset-password',
   '/invite',
   '/privacy',
+  '/setup',
   '/api/webhook',         // WhatsApp webhook — always public
   '/api/auth/callback',
 ]

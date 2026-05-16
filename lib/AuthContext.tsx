@@ -8,6 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase'
 import { isPrivilegedRole } from '@/lib/auth/isPrivilegedRole'
 import type { UserPermissions } from '@/lib/permissions'
@@ -68,6 +69,8 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 // Provider
 // ----------------------------------------------------------
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
+  const router = useRouter()
   const [state, setState] = useState<AuthState>({
     user:            null,
     org:             null,
@@ -248,6 +251,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe()
   }, [supabase, loadUserData])
+
+  useEffect(() => {
+    if (state.isLoading || !state.isAuthenticated || !state.user) return
+    if (!state.user.org_id && pathname !== '/setup') {
+      router.replace('/setup')
+    }
+  }, [pathname, router, state.isAuthenticated, state.isLoading, state.user])
 
   const signOut = useCallback(async () => {
     if (!supabase) return
