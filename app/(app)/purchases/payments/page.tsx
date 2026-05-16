@@ -8,6 +8,7 @@ import PageHeader from '@/components/layout/PageHeader'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { formatMoney } from '@/lib/transactions'
 import { generateNextCode } from '@/lib/numberSeries'
@@ -16,7 +17,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function VendorPaymentsPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const { error: notifyError } = useToast()
   const router = useRouter()
   const [rows, setRows] = useState<any[]>([])
@@ -25,7 +26,7 @@ export default function VendorPaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.purchases?.can_create
+  const { canCreate } = usePermissions('purchases')
   useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
   async function load(tenantId: string) {
     const supabase = getSupabaseClient()
@@ -66,7 +67,7 @@ export default function VendorPaymentsPage() {
         <Input label="Date" type="date" value={form.payment_date} onChange={(e) => setForm((p) => ({ ...p, payment_date: e.target.value }))} />
         <Input label="Amount" type="number" min="0" step="0.01" value={form.amount} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate || poOptions.length === 0} fullWidth>Save payment</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate || poOptions.length === 0} fullWidth>Save payment</Button>
       </form></Card>
       <DataTable columns={columns} data={rows} loading={loading} onRowClick={(row) => router.push(`/purchases/payments/${row.id}`)} emptyTitle="No vendor payments" emptyMessage="Record a payment for vendor settlement." />
     </section>

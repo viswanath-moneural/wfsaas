@@ -9,14 +9,15 @@ import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function LeadsPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const { error: notifyError } = useToast()
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.crm?.can_create
+  const { canCreate } = usePermissions('crm')
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -58,7 +59,7 @@ export default function LeadsPage() {
         <label><span>Status</span><select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))} disabled={!canCreate}><option value="new">new</option><option value="qualified">qualified</option><option value="lost">lost</option></select></label>
         <Input label="Notes" value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} disabled={!canCreate} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate} fullWidth>Add lead</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate} fullWidth>Add lead</Button>
       </form></Card>
       <DataTable columns={columns} data={rows} loading={loading} emptyTitle="No leads found" emptyMessage="Add your first lead." searchable searchPlaceholder="Search leads..." />
     </section>

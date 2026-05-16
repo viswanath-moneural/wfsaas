@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { createOrganisation as createOrganisationAction } from '@/app/actions/platform'
 
@@ -28,9 +29,9 @@ const EMPTY_FORM = {
 }
 
 export default function OrganisationPage() {
-  const { user, permissions } = useAuth()
+  const { user } = useAuth()
   const role = String(user?.role ?? '').toLowerCase()
-  const canEdit = Boolean(permissions?.is_admin || role === 'superadmin' || role === 'owner')
+  const { canCreate: canEdit } = usePermissions('configuration')
   const [rows, setRows] = useState<OrganisationRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
@@ -91,7 +92,7 @@ export default function OrganisationPage() {
             <Input label="Country" value={form.country} onChange={(e) => setForm((p) => ({ ...p, country: e.target.value }))} disabled={!canEdit} />
             <Input label="Timezone" value={form.timezone} onChange={(e) => setForm((p) => ({ ...p, timezone: e.target.value }))} disabled={!canEdit} />
             {error && <p className="form-error">{error}</p>}
-            <Button type="submit" loading={saving} disabled={!canEdit} fullWidth>Add organisation</Button>
+            <Button title={!canEdit ? 'You do not have permission to edit configuration.' : undefined} type="submit" loading={saving} disabled={!canEdit} fullWidth>Add organisation</Button>
           </form>
         </Card>
         <DataTable columns={columns} data={rows} loading={loading} emptyTitle="No organisations found" emptyMessage="Create organisations for each customer account." searchable searchPlaceholder="Search organisations..." />

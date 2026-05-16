@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { generateNextCode } from '@/lib/numberSeries'
@@ -17,7 +18,7 @@ interface Row { id: string; do_code: string; dispatch_date: string; status: stri
 interface OrderOption { id: string; so_code: string; customer_id: string; status: string | null; customers: { customer_name: string } | null }
 
 export default function DispatchPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const router = useRouter()
   const [rows, setRows] = useState<Row[]>([])
   const [orders, setOrders] = useState<OrderOption[]>([])
@@ -25,7 +26,7 @@ export default function DispatchPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.sales?.can_create
+  const { canCreate } = usePermissions('sales')
 
   useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void fetchData(tenant.id) }, [tenant?.id])
   async function fetchData(tenantId: string) {
@@ -82,7 +83,7 @@ export default function DispatchPage() {
         <Input label="Vehicle no." value={form.vehicle_no} onChange={(e) => setForm((p) => ({ ...p, vehicle_no: e.target.value }))} />
         <Input label="Driver name" value={form.driver_name} onChange={(e) => setForm((p) => ({ ...p, driver_name: e.target.value }))} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate || orders.length === 0} fullWidth>Create dispatch</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate || orders.length === 0} fullWidth>Create dispatch</Button>
       </form></Card>
       <DataTable columns={columns} data={rows} loading={loading} onRowClick={(row) => router.push(`/sales/dispatch/${row.id}`)} emptyTitle="No dispatches" emptyMessage="Create dispatch document from an order." />
     </section>

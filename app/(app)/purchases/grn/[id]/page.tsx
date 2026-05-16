@@ -8,13 +8,14 @@ import PageHeader from '@/components/layout/PageHeader'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { isPurchaseEditable } from '@/lib/transactions'
 import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function GrnDetailPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const { error: notifyError } = useToast()
   const params = useParams<{ id: string }>()
   const [grn, setGrn] = useState<any>(null)
@@ -22,7 +23,7 @@ export default function GrnDetailPage() {
   const [items, setItems] = useState<any[]>([])
   const [form, setForm] = useState({ material_id: '', received_qty: '1', rejected_qty: '0', unit: 'kg', rate: '0', batch_no: '' })
   const [error, setError] = useState('')
-  const canUpdate = permissions?.is_admin || permissions?.module_permissions.purchases?.can_update
+  const { canEdit: canUpdate } = usePermissions('purchases')
   const canEditLines = canUpdate && isPurchaseEditable(grn?.purchase_orders?.status)
   useEffect(() => { if (!tenant?.id || !params.id) return; void load(tenant.id, params.id) }, [tenant?.id, params.id])
   async function load(tenantId: string, id: string) {
@@ -53,7 +54,7 @@ export default function GrnDetailPage() {
         <Input label="Rate" type="number" value={form.rate} onChange={(e) => setForm((p) => ({ ...p, rate: e.target.value }))} disabled={!canEditLines} />
         <Input label="Batch No." value={form.batch_no} onChange={(e) => setForm((p) => ({ ...p, batch_no: e.target.value }))} disabled={!canEditLines} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" disabled={!canEditLines} fullWidth>Add item</Button>
+        <Button title={!canEditLines ? 'You do not have permission to edit this document.' : undefined} type="submit" disabled={!canEditLines} fullWidth>Add item</Button>
       </form></Card>
       <DataTable columns={[{ key: 'materials', header: 'Material', render: (_v, r) => `${r.materials?.material_code ?? ''} - ${r.materials?.material_name ?? ''}` }, { key: 'received_qty', header: 'Received' }, { key: 'rejected_qty', header: 'Rejected' }, { key: 'unit', header: 'Unit' }, { key: 'rate', header: 'Rate' }, { key: 'batch_no', header: 'Batch', render: (v) => v || '-' }]} data={items} />
     </section>

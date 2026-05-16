@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { createFactory } from '@/app/actions/platform'
 
@@ -27,7 +28,7 @@ const EMPTY_FORM = {
 }
 
 export default function TenantsPage() {
-  const { org, user, refreshAuth, permissions } = useAuth()
+  const { org, user, refreshAuth } = useAuth()
   const [rows, setRows] = useState<TenantRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
@@ -35,7 +36,7 @@ export default function TenantsPage() {
   const [error, setError] = useState('')
 
   const role = String(user?.role ?? '').toLowerCase()
-  const canEdit = Boolean(permissions?.is_admin || role === 'superadmin' || role === 'owner' || role === 'admin')
+  const { canCreate: canEdit } = usePermissions('configuration')
 
   useEffect(() => {
     if (!org?.id) return
@@ -156,7 +157,7 @@ export default function TenantsPage() {
             {error && <p className="form-error">{error}</p>}
             {!canEdit && <p className="form-hint">You do not have permission to create factories.</p>}
             {!org?.id && role !== 'superadmin' && <p className="form-hint">Organisation context missing for current user.</p>}
-            <Button type="submit" loading={saving} disabled={!canEdit} fullWidth>
+            <Button title={!canEdit ? 'You do not have permission to edit configuration.' : undefined} type="submit" loading={saving} disabled={!canEdit} fullWidth>
               Add factory
             </Button>
           </form>

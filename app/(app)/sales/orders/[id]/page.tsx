@@ -9,6 +9,7 @@ import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { canTransitionSalesStatus, isSalesEditable } from '@/lib/transactions'
 
@@ -58,7 +59,7 @@ const EMPTY_ITEM_FORM = {
 export default function SalesOrderDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const orderId = params.id
 
   const [order, setOrder] = useState<SalesOrder | null>(null)
@@ -71,7 +72,7 @@ export default function SalesOrderDetailPage() {
   const [savingStatus, setSavingStatus] = useState(false)
   const [error, setError] = useState('')
 
-  const canUpdate = permissions?.is_admin || permissions?.module_permissions.sales?.can_update
+  const { canEdit: canUpdate } = usePermissions('sales')
   const canEditLines = canUpdate && isSalesEditable(order?.status)
 
   useEffect(() => {
@@ -296,7 +297,7 @@ export default function SalesOrderDetailPage() {
                 </option>
               ))}
             </select>
-            <Button onClick={handleStatusSave} loading={savingStatus} disabled={!canUpdate}>
+            <Button title={!canUpdate ? 'You do not have permission to update records.' : undefined} onClick={handleStatusSave} loading={savingStatus} disabled={!canUpdate}>
               Save
             </Button>
           </div>
@@ -344,7 +345,7 @@ export default function SalesOrderDetailPage() {
             <Input label="Unit price" type="number" min="0" step="0.01" value={itemForm.unit_price} onChange={(event) => setItemForm((prev) => ({ ...prev, unit_price: event.target.value }))} required disabled={!canEditLines} />
             <Input label="Discount %" type="number" min="0" max="100" step="0.01" value={itemForm.discount_pct} onChange={(event) => setItemForm((prev) => ({ ...prev, discount_pct: event.target.value }))} disabled={!canEditLines} />
             {error && <p className="form-error">{error}</p>}
-            <Button type="submit" loading={savingItem} disabled={!canEditLines || products.length === 0} fullWidth>
+            <Button title={!canEditLines ? 'You do not have permission to edit this document.' : undefined} type="submit" loading={savingItem} disabled={!canEditLines || products.length === 0} fullWidth>
               Add item
             </Button>
           </form>

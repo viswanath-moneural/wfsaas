@@ -8,6 +8,7 @@ import PageHeader from '@/components/layout/PageHeader'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import { canTransitionPurchaseStatus, isPurchaseEditable } from '@/lib/transactions'
@@ -15,7 +16,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function PurchaseOrderDetailPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const { error: notifyError } = useToast()
   const params = useParams<{ id: string }>()
   const [po, setPo] = useState<any>(null)
@@ -24,7 +25,7 @@ export default function PurchaseOrderDetailPage() {
   const [form, setForm] = useState({ material_id: '', ordered_qty: '1', unit: 'kg', rate: '0' })
   const [status, setStatus] = useState('draft')
   const [error, setError] = useState('')
-  const canUpdate = permissions?.is_admin || permissions?.module_permissions.purchases?.can_update
+  const { canEdit: canUpdate } = usePermissions('purchases')
   const canEditLines = canUpdate && isPurchaseEditable(po?.status)
   useEffect(() => { if (!tenant?.id || !params.id) return; void load(tenant.id, params.id) }, [tenant?.id, params.id])
   async function load(tenantId: string, id: string) {
@@ -55,7 +56,7 @@ export default function PurchaseOrderDetailPage() {
   }
   return <>
     <PageHeader title={po?.po_code ?? 'Purchase Order'} description={po?.vendors?.vendor_name ?? ''} />
-    <Card><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}><Badge variant={STATUS_BADGE[String(po?.status ?? 'draft')] ?? 'default'}>{po?.status ?? 'draft'}</Badge><div style={{ display: 'flex', gap: '8px' }}><select value={status} onChange={(e) => setStatus(e.target.value)} disabled={!canUpdate}>{['draft', 'approved', 'received', 'closed', 'cancelled'].map((option) => <option key={option} value={option} disabled={!canTransitionPurchaseStatus(po?.status, option)}>{option}</option>)}</select><Button onClick={saveStatus} disabled={!canUpdate}>Save status</Button></div></div></Card>
+    <Card><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}><Badge variant={STATUS_BADGE[String(po?.status ?? 'draft')] ?? 'default'}>{po?.status ?? 'draft'}</Badge><div style={{ display: 'flex', gap: '8px' }}><select value={status} onChange={(e) => setStatus(e.target.value)} disabled={!canUpdate}>{['draft', 'approved', 'received', 'closed', 'cancelled'].map((option) => <option key={option} value={option} disabled={!canTransitionPurchaseStatus(po?.status, option)}>{option}</option>)}</select><Button title={!canUpdate ? 'You do not have permission to update records.' : undefined} onClick={saveStatus} disabled={!canUpdate}>Save status</Button></div></div></Card>
     <div style={{ height: '16px' }} />
     <section className="layout">
       <Card><h2>Add item</h2><form onSubmit={addItem}>
@@ -64,7 +65,7 @@ export default function PurchaseOrderDetailPage() {
         <Input label="Unit" value={form.unit} onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))} disabled={!canEditLines} />
         <Input label="Rate" type="number" value={form.rate} onChange={(e) => setForm((p) => ({ ...p, rate: e.target.value }))} disabled={!canEditLines} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" disabled={!canEditLines} fullWidth>Add item</Button>
+        <Button title={!canEditLines ? 'You do not have permission to edit this document.' : undefined} type="submit" disabled={!canEditLines} fullWidth>Add item</Button>
       </form></Card>
       <DataTable columns={[{ key: 'materials', header: 'Material', render: (_v, r) => `${r.materials?.material_code ?? ''} - ${r.materials?.material_name ?? ''}` }, { key: 'ordered_qty', header: 'Qty' }, { key: 'unit', header: 'Unit' }, { key: 'rate', header: 'Rate' }]} data={items} />
     </section>

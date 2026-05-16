@@ -9,6 +9,7 @@ import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { generateNextCode, seedDefaultNumberSeries } from '@/lib/numberSeries'
 import { useToast } from '@/lib/hooks/useToast'
@@ -18,7 +19,7 @@ interface Vendor { id: string; vendor_code: string; vendor_name: string }
 interface PoRow { id: string; po_code: string; po_date: string; expected_date: string | null; status: string | null; vendors: Vendor | null }
 
 export default function PurchaseOrdersPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const { error: notifyError } = useToast()
   const router = useRouter()
   const [rows, setRows] = useState<PoRow[]>([])
@@ -27,7 +28,7 @@ export default function PurchaseOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.purchases?.can_create
+  const { canCreate } = usePermissions('purchases')
   useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void fetchData(tenant.id) }, [tenant?.id])
   useEffect(() => {
     if (!form.vendor_id && vendors[0]?.id) {
@@ -84,7 +85,7 @@ export default function PurchaseOrdersPage() {
         <Input label="Expected date" type="date" value={form.expected_date} onChange={(e) => setForm((p) => ({ ...p, expected_date: e.target.value }))} />
         <Input label="Notes" value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate || vendors.length === 0} fullWidth>Create PO</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate || vendors.length === 0} fullWidth>Create PO</Button>
       </form></Card>
       <DataTable columns={columns} data={rows} loading={loading} onRowClick={(row) => router.push(`/purchases/orders/${row.id}`)} emptyTitle="No purchase orders found" emptyMessage="Create your first PO." />
     </section>

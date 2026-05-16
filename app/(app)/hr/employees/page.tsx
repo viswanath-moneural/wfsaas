@@ -9,14 +9,15 @@ import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 import { useToast } from '@/lib/hooks/useToast'
 import { getSupabaseClient } from '@/lib/supabase'
 
 export default function EmployeesPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const { error: notifyError } = useToast()
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.hr?.can_create
+  const { canCreate } = usePermissions('hr')
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -57,7 +58,7 @@ export default function EmployeesPage() {
         <Input label="Department" value={form.department} onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))} disabled={!canCreate} />
         <Input label="Date of joining" type="date" value={form.date_of_joining} onChange={(e) => setForm((p) => ({ ...p, date_of_joining: e.target.value }))} disabled={!canCreate} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate} fullWidth>Add employee</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate} fullWidth>Add employee</Button>
       </form></Card>
       <DataTable columns={columns} data={rows} loading={loading} emptyTitle="No employees found" emptyMessage="Add employee master records." searchable searchPlaceholder="Search employees..." />
     </section>

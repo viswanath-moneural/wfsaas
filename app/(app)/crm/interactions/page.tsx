@@ -8,30 +8,31 @@ import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function InteractionsPage() {
-  const { tenant, user, permissions } = useAuth()
+  const { tenant, user } = useAuth()
   const { error: notifyError } = useToast()
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.crm?.can_create
+  const { canCreate } = usePermissions('crm')
   const [rows, setRows] = useState<any[]>([])
-  const [parties, setParties] = useState<any[]>([])
+  const [customers, setCustomers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ party_id: '', type: 'call', summary: '', details: '' })
+  const [form, setForm] = useState({ customer_id: '', type: 'call', summary: '', details: '' })
   useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
   async function load(tenantId: string) {
     const supabase = getSupabaseClient()
-    const [{ data: intData, error: intError }, { data: partyData }] = await Promise.all([
-      supabase.from('interactions').select('id, type, summary, interaction_at, parties(party_name)').eq('tenant_id', tenantId).order('interaction_at', { ascending: false }),
-      supabase.from('parties').select('id, party_name').eq('tenant_id', tenantId).eq('is_active', true).order('party_name', { ascending: true }),
+    const [{ data: intData, error: intError }, { data: customerData }] = await Promise.all([
+      supabase.from('interactions').select('id, type, summary, interaction_at, customers(id, customer_code, customer_name, parties(party_name), contact_roles(role_type, is_primary, contact_persons(name, phone, email)))').eq('tenant_id', tenantId).order('interaction_at', { ascending: false }),
+      supabase.from('customers').select('id, customer_code, customer_name, parties(party_name), contact_roles(role_type, is_primary, contact_persons(name, phone, email))').eq('tenant_id', tenantId).eq('is_active', true).order('customer_name', { ascending: true }),
     ])
     if (intError) setError(intError.message)
     setRows(intData ?? [])
-    setParties(partyData ?? [])
+    setCustomers(customerData ?? [])
     setLoading(false)
   }
   async function create(event: React.FormEvent<HTMLFormElement>) {
@@ -39,26 +40,29 @@ export default function InteractionsPage() {
     if (!tenant?.id || !canCreate) return
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
-    const { data, error } = await supabase.from('interactions').insert({ tenant_id: tenant.id, party_id: form.party_id || null, type: form.type, summary: form.summary.trim(), details: form.details.trim() || null, logged_by: user?.id ?? null, interaction_at: new Date().toISOString() }).select('id').single()
+    const { data, error } = await supabase.from('interactions').insert({ tenant_id: tenant.id, customer_id: form.customer_id || null, type: form.type, summary: form.summary.trim(), details: form.details.trim() || null, logged_by: user?.id ?? null, interaction_at: new Date().toISOString() }).select('id').single()
     setSaving(false)
     if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to save interaction.'); return }
-    setForm({ party_id: '', type: 'call', summary: '', details: '' })
+    setForm({ customer_id: '', type: 'call', summary: '', details: '' })
     await load(tenant.id)
   }
   if (!tenant) return <TenantSetupNotice title="Interactions" description="Select or create a factory before logging interactions." />
   const columns: Column<any>[] = useMemo(() => [
-    { key: 'interaction_at', header: 'When' }, { key: 'type', header: 'Type' }, { key: 'parties', header: 'Party', render: (_v, r) => r.parties?.party_name ?? '-' }, { key: 'summary', header: 'Summary' },
+    { key: 'interaction_at', header: 'When' }, { key: 'type', header: 'Type' }, { key: 'customers', header: 'Customer', render: (_v, r) => r.customers?.parties?.party_name ?? r.customers?.customer_name ?? '-' }, { key: 'primary_contact', header: 'Contact', render: (_v, r) => {
+      const primary = r.customers?.contact_roles?.find((role: any) => role.is_primary) ?? r.customers?.contact_roles?.[0]
+      return primary?.contact_persons?.name ?? '-'
+    } }, { key: 'summary', header: 'Summary' },
   ], [])
   return <>
     <PageHeader title="Interactions" description={`Interaction log for ${tenant.name}.`} />
     <section className="layout">
       <Card><h2>Log Interaction</h2><form onSubmit={create}>
-        <label><span>Party</span><select value={form.party_id} onChange={(e) => setForm((p) => ({ ...p, party_id: e.target.value }))} disabled={!canCreate}><option value="">None</option>{parties.map((party) => <option key={party.id} value={party.id}>{party.party_name}</option>)}</select></label>
+        <label><span>Customer</span><select value={form.customer_id} onChange={(e) => setForm((p) => ({ ...p, customer_id: e.target.value }))} disabled={!canCreate}><option value="">None</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.customer_code} - {customer.parties?.party_name ?? customer.customer_name}</option>)}</select></label>
         <label><span>Type</span><select value={form.type} onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))} disabled={!canCreate}><option value="call">call</option><option value="meeting">meeting</option><option value="email">email</option><option value="message">message</option></select></label>
         <Input label="Summary" value={form.summary} onChange={(e) => setForm((p) => ({ ...p, summary: e.target.value }))} required disabled={!canCreate} />
         <Input label="Details" value={form.details} onChange={(e) => setForm((p) => ({ ...p, details: e.target.value }))} disabled={!canCreate} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate} fullWidth>Save interaction</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate} fullWidth>Save interaction</Button>
       </form></Card>
       <DataTable columns={columns} data={rows} loading={loading} emptyTitle="No interactions found" emptyMessage="Log your first interaction." searchable searchPlaceholder="Search interactions..." />
     </section>

@@ -8,6 +8,7 @@ import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { saveNumberSeries } from '@/app/actions/platform'
@@ -15,8 +16,8 @@ import { saveNumberSeries } from '@/app/actions/platform'
 const ENTITY_OPTIONS = ['sales_order', 'dispatch_order', 'invoice', 'customer_payment', 'vendor_payment', 'purchase_order', 'grn']
 
 export default function NumberSeriesPage() {
-  const { tenant, permissions } = useAuth()
-  const canEdit = permissions?.is_admin || permissions?.module_permissions.configuration?.can_create
+  const { tenant } = useAuth()
+  const { canCreate: canEdit } = usePermissions('configuration')
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -79,7 +80,7 @@ export default function NumberSeriesPage() {
             <label className="check"><input type="checkbox" checked={form.include_fin_year} onChange={(e) => setForm((p) => ({ ...p, include_fin_year: e.target.checked }))} disabled={!canEdit} /><span>Include Financial Year</span></label>
             <label className="check"><input type="checkbox" checked={form.include_month} onChange={(e) => setForm((p) => ({ ...p, include_month: e.target.checked }))} disabled={!canEdit} /><span>Include Month</span></label>
             {error && <p className="form-error">{error}</p>}
-            <Button type="submit" loading={saving} disabled={!canEdit} fullWidth>Save series</Button>
+            <Button title={!canEdit ? 'You do not have permission to edit configuration.' : undefined} type="submit" loading={saving} disabled={!canEdit} fullWidth>Save series</Button>
           </form>
         </Card>
         <DataTable columns={columns} data={rows} loading={loading} emptyTitle="No series configured" emptyMessage="Add one series per document entity." />

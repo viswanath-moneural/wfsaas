@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { createUser } from '@/app/actions/users/createUser'
 
@@ -40,9 +41,9 @@ interface TenantRow {
 }
 
 export default function ConfigurationUsersPage() {
-  const { org, user, permissions } = useAuth()
+  const { org, user } = useAuth()
   const role = String(user?.role ?? '').toLowerCase()
-  const canEdit = Boolean(permissions?.is_admin || role === 'superadmin' || role === 'owner' || role === 'admin')
+  const { canCreate: canEdit } = usePermissions('configuration')
   const [rows, setRows] = useState<UserRow[]>([])
   const [organisations, setOrganisations] = useState<OrganisationRow[]>([])
   const [tenants, setTenants] = useState<TenantRow[]>([])
@@ -215,7 +216,7 @@ export default function ConfigurationUsersPage() {
                 </select>
               </label>
               {error && <p className="form-error">{error}</p>}
-              <Button type="submit" loading={saving} disabled={!canEdit || !form.org_id || !form.role_id} fullWidth>Create login user</Button>
+              <Button title={!canEdit ? 'You do not have permission to edit configuration.' : undefined} type="submit" loading={saving} disabled={!canEdit || !form.org_id || !form.role_id} fullWidth>Create login user</Button>
             </form>
           </Card>
           <DataTable columns={columns} data={rows} loading={loading} emptyTitle="No users found" emptyMessage="Add users and assign them roles." searchable searchPlaceholder="Search users..." />

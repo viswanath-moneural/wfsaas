@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { createRole as createRoleAction } from '@/app/actions/platform'
 
@@ -24,9 +25,9 @@ const EMPTY_FORM = {
 }
 
 export default function RolesPage() {
-  const { org, user, permissions } = useAuth()
+  const { org, user } = useAuth()
   const role = String(user?.role ?? '').toLowerCase()
-  const canEdit = Boolean(permissions?.is_admin || role === 'superadmin' || role === 'owner' || role === 'admin')
+  const { canCreate: canEdit } = usePermissions('configuration')
   const [rows, setRows] = useState<RoleRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
@@ -91,7 +92,7 @@ export default function RolesPage() {
               <Input label="Role name" value={form.role_name} onChange={(e) => setForm((p) => ({ ...p, role_name: e.target.value }))} required disabled={!canEdit} />
               <Input label="Description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} disabled={!canEdit} />
               {error && <p className="form-error">{error}</p>}
-              <Button type="submit" loading={saving} disabled={!canEdit} fullWidth>Add role</Button>
+              <Button title={!canEdit ? 'You do not have permission to edit configuration.' : undefined} type="submit" loading={saving} disabled={!canEdit} fullWidth>Add role</Button>
             </form>
           </Card>
           <DataTable columns={columns} data={rows} loading={loading} emptyTitle="No roles found" emptyMessage="Create custom roles for this organisation." searchable searchPlaceholder="Search roles..." />

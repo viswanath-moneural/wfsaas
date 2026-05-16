@@ -7,15 +7,16 @@ import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import { MODULE_LIST } from '@/lib/modules'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { toggleModule } from '@/app/actions/platform'
 
 export default function ConfigurationModulesPage() {
-  const { org, permissions } = useAuth()
+  const { org } = useAuth()
   const [enabled, setEnabled] = useState<Record<string, boolean>>({})
   const [savingKey, setSavingKey] = useState('')
   const [error, setError] = useState('')
-  const canEdit = permissions?.is_admin ?? false
+  const { canEdit } = usePermissions('configuration')
 
   useEffect(() => {
     if (!org?.id) return
@@ -78,6 +79,7 @@ export default function ConfigurationModulesPage() {
                 </div>
                 <div className="actions">
                   <Button
+                    title={!canEdit ? 'You do not have permission to edit configuration.' : undefined}
                     size="sm"
                     variant={on ? 'outline' : 'primary'}
                     disabled={!canEdit || locked}

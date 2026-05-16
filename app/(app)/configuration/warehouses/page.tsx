@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { createWarehouse } from '@/app/actions/platform'
@@ -32,14 +33,14 @@ const EMPTY_FORM = {
 }
 
 export default function WarehousesPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const [rows, setRows] = useState<WarehouseRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const canEdit = permissions?.is_admin || permissions?.module_permissions.configuration?.can_create
+  const { canCreate: canEdit } = usePermissions('configuration')
 
   useEffect(() => {
     if (!tenant?.id) {
@@ -135,7 +136,7 @@ export default function WarehousesPage() {
               <span>Set as default warehouse</span>
             </label>
             {error && <p className="form-error">{error}</p>}
-            <Button type="submit" loading={saving} disabled={!canEdit} fullWidth>Add warehouse</Button>
+            <Button title={!canEdit ? 'You do not have permission to edit configuration.' : undefined} type="submit" loading={saving} disabled={!canEdit} fullWidth>Add warehouse</Button>
           </form>
         </Card>
 

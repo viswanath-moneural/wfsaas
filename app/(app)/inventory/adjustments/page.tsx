@@ -7,12 +7,13 @@ import PageHeader from '@/components/layout/PageHeader'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function AdjustmentsPage() {
-  const { tenant, user, permissions } = useAuth()
+  const { tenant, user } = useAuth()
   const { error: notifyError } = useToast()
   const [rows, setRows] = useState<any[]>([])
   const [materials, setMaterials] = useState<any[]>([])
@@ -22,7 +23,7 @@ export default function AdjustmentsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.inventory?.can_create
+  const { canCreate } = usePermissions('inventory')
   useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
   async function load(tenantId: string) {
     const supabase = getSupabaseClient()
@@ -63,7 +64,7 @@ export default function AdjustmentsPage() {
         <Input label="Reason code" value={form.reason_code} onChange={(e) => setForm((p) => ({ ...p, reason_code: e.target.value }))} />
         <Input label="Notes" value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate} fullWidth>Save adjustment</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate} fullWidth>Save adjustment</Button>
       </form></Card>
       <DataTable columns={columns} data={rows} loading={loading} emptyTitle="No adjustments" emptyMessage="Post adjustment entries with reason codes." />
     </section>

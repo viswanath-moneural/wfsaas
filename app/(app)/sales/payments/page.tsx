@@ -8,6 +8,7 @@ import PageHeader from '@/components/layout/PageHeader'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { formatMoney } from '@/lib/transactions'
 import { generateNextCode } from '@/lib/numberSeries'
@@ -17,7 +18,7 @@ interface PaymentRow { id: string; payment_code: string | null; payment_date: st
 interface InvoiceOption { id: string; invoice_no: string; customer_id: string; status: string | null; customers: { customer_name: string } | null }
 
 export default function CustomerPaymentsPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const router = useRouter()
   const [rows, setRows] = useState<PaymentRow[]>([])
   const [invoices, setInvoices] = useState<InvoiceOption[]>([])
@@ -25,7 +26,7 @@ export default function CustomerPaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.sales?.can_create
+  const { canCreate } = usePermissions('sales')
 
   useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void fetchData(tenant.id) }, [tenant?.id])
   async function fetchData(tenantId: string) {
@@ -92,7 +93,7 @@ export default function CustomerPaymentsPage() {
         <Input label="Date" type="date" value={form.payment_date} onChange={(e) => setForm((p) => ({ ...p, payment_date: e.target.value }))} required />
         <Input label="Amount" type="number" min="0" step="0.01" value={form.amount_paid} onChange={(e) => setForm((p) => ({ ...p, amount_paid: e.target.value }))} required />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate || invoices.length === 0} fullWidth>Save payment</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate || invoices.length === 0} fullWidth>Save payment</Button>
       </form></Card>
       <DataTable columns={columns} data={rows} loading={loading} onRowClick={(row) => router.push(`/sales/payments/${row.id}`)} emptyTitle="No payments found" emptyMessage="Record customer payments against invoices." />
     </section>

@@ -8,6 +8,7 @@ import PageHeader from '@/components/layout/PageHeader'
 import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { calcInvoiceTotals, canTransitionSalesStatus, formatMoney } from '@/lib/transactions'
 
@@ -15,14 +16,14 @@ interface Item { id: string; qty: number; unit_price: number; discount_pct: numb
 interface Invoice { id: string; invoice_no: string; invoice_date: string; status: string | null; customers: { customer_name: string } | null }
 
 export default function InvoiceDetailPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const params = useParams<{ id: string }>()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState('draft')
   const [error, setError] = useState('')
-  const canUpdate = permissions?.is_admin || permissions?.module_permissions.sales?.can_update
+  const { canEdit: canUpdate } = usePermissions('sales')
 
   useEffect(() => { if (!tenant?.id || !params.id) { setLoading(false); return } ; void fetchData(tenant.id, params.id) }, [tenant?.id, params.id])
 
@@ -64,7 +65,7 @@ export default function InvoiceDetailPage() {
     <PageHeader title={invoice?.invoice_no ?? 'Invoice'} description={invoice?.customers?.customer_name ?? ''} />
     <section className="top">
       <Card><div className="row"><span>Date</span><strong>{invoice?.invoice_date}</strong></div><div className="row"><span>Status</span><Badge variant={STATUS_BADGE[String(invoice?.status ?? 'draft')] ?? 'default'}>{invoice?.status ?? 'draft'}</Badge></div></Card>
-      <Card><h2>Status</h2><div className="actions"><select value={status} onChange={(e) => setStatus(e.target.value)} disabled={!canUpdate}>{['draft', 'confirmed', 'invoiced', 'paid', 'cancelled', 'partial'].map((option) => <option key={option} value={option} disabled={!canTransitionSalesStatus(invoice?.status, option) && option !== 'partial'}>{option}</option>)}</select><Button onClick={saveStatus} disabled={!canUpdate}>Save</Button></div>{error && <p className="form-error">{error}</p>}</Card>
+      <Card><h2>Status</h2><div className="actions"><select value={status} onChange={(e) => setStatus(e.target.value)} disabled={!canUpdate}>{['draft', 'confirmed', 'invoiced', 'paid', 'cancelled', 'partial'].map((option) => <option key={option} value={option} disabled={!canTransitionSalesStatus(invoice?.status, option) && option !== 'partial'}>{option}</option>)}</select><Button title={!canUpdate ? 'You do not have permission to update records.' : undefined} onClick={saveStatus} disabled={!canUpdate}>Save</Button></div>{error && <p className="form-error">{error}</p>}</Card>
     </section>
     <DataTable columns={columns} data={items} emptyTitle="No items" emptyMessage="Add line items directly in Supabase or next enhancement." />
     <Card className="totals"><p>Subtotal: {formatMoney(totals.subtotal)}</p><p>Discount: {formatMoney(totals.discount)}</p><p>Total: {formatMoney(totals.total)}</p></Card>

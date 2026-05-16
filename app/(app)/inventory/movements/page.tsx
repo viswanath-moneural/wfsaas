@@ -7,12 +7,13 @@ import PageHeader from '@/components/layout/PageHeader'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function MovementsPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const { error: notifyError } = useToast()
   const [rmRows, setRmRows] = useState<any[]>([])
   const [fgRows, setFgRows] = useState<any[]>([])
@@ -22,7 +23,7 @@ export default function MovementsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ item_type: 'material', item_id: '', movement_type: 'in', qty: '0', unit: 'kg', movement_date: new Date().toISOString().split('T')[0], ref_table: '', ref_id: '' })
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.inventory?.can_create
+  const { canCreate } = usePermissions('inventory')
   useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
   async function load(tenantId: string) {
     const supabase = getSupabaseClient()
@@ -65,7 +66,7 @@ export default function MovementsPage() {
         <Input label="Ref Table" value={form.ref_table} onChange={(e) => setForm((p) => ({ ...p, ref_table: e.target.value }))} />
         <Input label="Ref Id" value={form.ref_id} onChange={(e) => setForm((p) => ({ ...p, ref_id: e.target.value }))} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate} fullWidth>Save movement</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate} fullWidth>Save movement</Button>
       </form></Card>
       <div><DataTable columns={rmColumns} data={rmRows} loading={loading} emptyTitle="No material movements" emptyMessage="Post stock entries to see movement history." /><div style={{ height: '16px' }} /><DataTable columns={fgColumns} data={fgRows} loading={loading} emptyTitle="No FG movements" emptyMessage="Production/dispatch movements show here." /></div>
     </section>

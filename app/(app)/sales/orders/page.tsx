@@ -10,6 +10,7 @@ import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { generateNextCode } from '@/lib/numberSeries'
@@ -40,7 +41,7 @@ const EMPTY_FORM = {
 }
 
 export default function SalesOrdersPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const router = useRouter()
   const [orders, setOrders] = useState<SalesOrderRow[]>([])
   const [customers, setCustomers] = useState<CustomerOption[]>([])
@@ -49,7 +50,7 @@ export default function SalesOrdersPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.sales?.can_create
+  const { canCreate } = usePermissions('sales')
 
   useEffect(() => {
     if (!tenant?.id) {
@@ -238,6 +239,7 @@ export default function SalesOrdersPage() {
               <p className="helper-link">No customers yet. <Link href="/configuration/customers">Add customer</Link></p>
             )}
             <Button
+              title={!canCreate ? 'You do not have permission to create records.' : undefined}
               type="submit"
               loading={saving}
               disabled={!canCreate || customers.length === 0}

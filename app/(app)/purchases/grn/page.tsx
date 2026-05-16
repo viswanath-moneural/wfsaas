@@ -9,13 +9,14 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { generateNextCode, seedDefaultNumberSeries } from '@/lib/numberSeries'
 import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function GrnPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const { error: notifyError } = useToast()
   const router = useRouter()
   const [rows, setRows] = useState<any[]>([])
@@ -24,7 +25,7 @@ export default function GrnPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.purchases?.can_create
+  const { canCreate } = usePermissions('purchases')
   useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
   useEffect(() => {
     if (!form.po_id && poOptions[0]?.id) {
@@ -77,7 +78,7 @@ export default function GrnPage() {
         <Input label="GRN date" type="date" value={form.grn_date} onChange={(e) => setForm((p) => ({ ...p, grn_date: e.target.value }))} required />
         <Input label="Vehicle no." value={form.vehicle_no} onChange={(e) => setForm((p) => ({ ...p, vehicle_no: e.target.value }))} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate || poOptions.length === 0} fullWidth>Create GRN</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate || poOptions.length === 0} fullWidth>Create GRN</Button>
       </form></Card>
       <DataTable columns={columns} data={rows} loading={loading} onRowClick={(row) => router.push(`/purchases/grn/${row.id}`)} emptyTitle="No GRNs yet" emptyMessage="Create GRN against PO." />
     </section>

@@ -9,6 +9,7 @@ import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
+import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { calcInvoiceTotals } from '@/lib/transactions'
 import { generateNextCode } from '@/lib/numberSeries'
@@ -18,7 +19,7 @@ interface Row { id: string; invoice_no: string; invoice_date: string; status: st
 interface OrderOption { id: string; so_code: string; customer_id: string; status: string | null; customers: { customer_name: string } | null }
 
 export default function SalesInvoicesPage() {
-  const { tenant, permissions } = useAuth()
+  const { tenant } = useAuth()
   const router = useRouter()
   const [rows, setRows] = useState<Row[]>([])
   const [orders, setOrders] = useState<OrderOption[]>([])
@@ -26,7 +27,7 @@ export default function SalesInvoicesPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const canCreate = permissions?.is_admin || permissions?.module_permissions.sales?.can_create
+  const { canCreate } = usePermissions('sales')
 
   useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void fetchData(tenant.id) }, [tenant?.id])
 
@@ -99,7 +100,7 @@ export default function SalesInvoicesPage() {
         <Input label="Invoice date" type="date" value={form.invoice_date} onChange={(e) => setForm((p) => ({ ...p, invoice_date: e.target.value }))} required />
         <Input label="Due date" type="date" value={form.due_date} onChange={(e) => setForm((p) => ({ ...p, due_date: e.target.value }))} />
         {error && <p className="form-error">{error}</p>}
-        <Button type="submit" loading={saving} disabled={!canCreate || orders.length === 0} fullWidth>Create invoice</Button>
+        <Button title={!canCreate ? 'You do not have permission to create records.' : undefined} type="submit" loading={saving} disabled={!canCreate || orders.length === 0} fullWidth>Create invoice</Button>
       </form></Card>
       <DataTable columns={columns} data={rows} loading={loading} onRowClick={(row) => router.push(`/sales/invoices/${row.id}`)} emptyTitle="No invoices found" emptyMessage="Create invoice from a sales order." />
     </section>
