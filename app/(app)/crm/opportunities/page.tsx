@@ -10,9 +10,12 @@ import Badge from '@/components/ui/Badge'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { useToast } from '@/lib/hooks/useToast'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function OpportunitiesPage() {
   const { tenant, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const canCreate = permissions?.is_admin || permissions?.module_permissions.crm?.can_create
   const [rows, setRows] = useState<any[]>([])
   const [leads, setLeads] = useState<any[]>([])
@@ -38,9 +41,9 @@ export default function OpportunitiesPage() {
     if (!tenant?.id || !canCreate) return
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('opportunities').insert({ tenant_id: tenant.id, opp_code: form.opp_code.trim(), lead_id: form.lead_id || null, title: form.title.trim(), stage: form.stage, expected_value: Number(form.expected_value), probability_pct: Number(form.probability_pct) })
+    const { data, error } = await supabase.from('opportunities').insert({ tenant_id: tenant.id, opp_code: form.opp_code.trim(), lead_id: form.lead_id || null, title: form.title.trim(), stage: form.stage, expected_value: Number(form.expected_value), probability_pct: Number(form.probability_pct) }).select('id').single()
     setSaving(false)
-    if (insertError) { setError(insertError.message); return }
+    if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to add opportunity.'); return }
     setForm({ opp_code: '', lead_id: '', title: '', stage: 'prospecting', expected_value: '0', probability_pct: '10' })
     await load(tenant.id)
   }

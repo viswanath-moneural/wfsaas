@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { getSupabaseClient } from '@/lib/supabase'
+import { isPrivilegedRole } from '@/lib/auth/isPrivilegedRole'
 import type { UserPermissions } from '@/lib/permissions'
 
 // ----------------------------------------------------------
@@ -97,9 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userError || !userData) throw userError
 
       const baseRole = String(userData.role ?? '').toLowerCase()
-      const isBaseSuperAdmin = baseRole === 'superadmin' || baseRole === 'owner' || baseRole === 'admin'
+      const isBasePrivileged = isPrivilegedRole(baseRole)
 
-      // 2. Load organisation (superadmin fallback if org_id is missing)
+      // 2. Load organisation (privileged fallback if org_id is missing)
       let orgData: Organisation | null = null
       if (userData.org_id) {
         const { data: orgById } = await supabase
@@ -110,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         orgData = (orgById as Organisation | null) ?? null
       }
 
-      if (!orgData && isBaseSuperAdmin) {
+      if (!orgData && isBasePrivileged) {
         const { data: preferredOrg } = await supabase
           .from('organisations')
           .select('*')
@@ -180,13 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const roleName = (userRoleData?.roles as any)?.role_name ?? userData.role
       const appRole = String(userData.role ?? '').toLowerCase()
       const resolvedRole = String(roleName ?? '').toLowerCase()
-      const isAdmin =
-        appRole === 'superadmin' ||
-        resolvedRole === 'superadmin' ||
-        appRole === 'admin' ||
-        resolvedRole === 'admin' ||
-        appRole === 'owner' ||
-        resolvedRole === 'owner'
+      const isAdmin = isPrivilegedRole(appRole) || isPrivilegedRole(resolvedRole)
 
       const modulePermissions: Record<string, any> = {}
       ;((userRoleData as any)?.role_permissions ?? []).forEach((rp: any) => {

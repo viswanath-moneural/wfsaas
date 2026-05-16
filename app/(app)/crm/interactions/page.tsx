@@ -9,9 +9,12 @@ import Button from '@/components/ui/Button'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { useToast } from '@/lib/hooks/useToast'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function InteractionsPage() {
   const { tenant, user, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const canCreate = permissions?.is_admin || permissions?.module_permissions.crm?.can_create
   const [rows, setRows] = useState<any[]>([])
   const [parties, setParties] = useState<any[]>([])
@@ -36,9 +39,9 @@ export default function InteractionsPage() {
     if (!tenant?.id || !canCreate) return
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('interactions').insert({ tenant_id: tenant.id, party_id: form.party_id || null, type: form.type, summary: form.summary.trim(), details: form.details.trim() || null, logged_by: user?.id ?? null, interaction_at: new Date().toISOString() })
+    const { data, error } = await supabase.from('interactions').insert({ tenant_id: tenant.id, party_id: form.party_id || null, type: form.type, summary: form.summary.trim(), details: form.details.trim() || null, logged_by: user?.id ?? null, interaction_at: new Date().toISOString() }).select('id').single()
     setSaving(false)
-    if (insertError) { setError(insertError.message); return }
+    if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to save interaction.'); return }
     setForm({ party_id: '', type: 'call', summary: '', details: '' })
     await load(tenant.id)
   }

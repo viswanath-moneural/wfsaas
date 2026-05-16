@@ -8,9 +8,12 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { useToast } from '@/lib/hooks/useToast'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function MovementsPage() {
   const { tenant, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const [rmRows, setRmRows] = useState<any[]>([])
   const [fgRows, setFgRows] = useState<any[]>([])
   const [materials, setMaterials] = useState<any[]>([])
@@ -35,12 +38,14 @@ export default function MovementsPage() {
     e.preventDefault(); if (!tenant?.id) return
     if (!canCreate) { setError('You do not have permission to create stock movements.'); return }
     if (!form.item_id) { setError('Select an item before saving movement.'); return }
-    setSaving(true)
+    setSaving(true); setError('')
     const supabase = getSupabaseClient()
     if (form.item_type === 'material') {
-      await supabase.from('stock_movements').insert({ tenant_id: tenant.id, material_id: form.item_id, movement_date: form.movement_date, movement_type: form.movement_type, qty: Number(form.qty), unit: form.unit, ref_table: form.ref_table || null, ref_id: form.ref_id || null })
+      const { data, error } = await supabase.from('stock_movements').insert({ tenant_id: tenant.id, material_id: form.item_id, movement_date: form.movement_date, movement_type: form.movement_type, qty: Number(form.qty), unit: form.unit, ref_table: form.ref_table || null, ref_id: form.ref_id || null }).select('id').single()
+      if (handleSupabaseError(error, notifyError)) { setSaving(false); setError(error?.message ?? 'Failed to save stock movement.'); return }
     } else {
-      await supabase.from('finished_goods_movements').insert({ tenant_id: tenant.id, product_id: form.item_id, movement_date: form.movement_date, movement_type: form.movement_type, qty: Number(form.qty), ref_table: form.ref_table || null, ref_id: form.ref_id || null })
+      const { data, error } = await supabase.from('finished_goods_movements').insert({ tenant_id: tenant.id, product_id: form.item_id, movement_date: form.movement_date, movement_type: form.movement_type, qty: Number(form.qty), ref_table: form.ref_table || null, ref_id: form.ref_id || null }).select('id').single()
+      if (handleSupabaseError(error, notifyError)) { setSaving(false); setError(error?.message ?? 'Failed to save finished goods movement.'); return }
     }
     setSaving(false); await load(tenant.id)
   }

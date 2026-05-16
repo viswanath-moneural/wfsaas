@@ -9,10 +9,13 @@ import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
+import { useToast } from '@/lib/hooks/useToast'
 import { getSupabaseClient } from '@/lib/supabase'
 
 export default function AttendancePage() {
   const { tenant, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const canCreate = permissions?.is_admin || permissions?.module_permissions.hr?.can_create
   const [rows, setRows] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
@@ -37,9 +40,10 @@ export default function AttendancePage() {
     if (!tenant?.id || !canCreate) return
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('attendance').insert({ tenant_id: tenant.id, employee_id: form.employee_id || null, attendance_date: form.attendance_date, shift: form.shift as any, status: form.status, in_time: form.in_time || null, out_time: form.out_time || null, notes: form.notes || null })
+    const { data, error } = await supabase.from('attendance').insert({ tenant_id: tenant.id, employee_id: form.employee_id || null, attendance_date: form.attendance_date, shift: form.shift as any, status: form.status, in_time: form.in_time || null, out_time: form.out_time || null, notes: form.notes || null }).select('id').single()
     setSaving(false)
-    if (insertError) { setError(insertError.message); return }
+    if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to save attendance.'); return }
+    if (!data) return
     setForm({ employee_id: '', attendance_date: new Date().toISOString().split('T')[0], shift: 'general', status: 'present', in_time: '', out_time: '', notes: '' })
     await load(tenant.id)
   }

@@ -10,6 +10,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import { createVendor } from '@/app/actions/platform'
 
 interface VendorRow {
   id: string
@@ -68,21 +69,19 @@ export default function VendorsPage() {
     setSaving(true)
     setError('')
 
-    const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('vendors').insert({
+    const result = await createVendor({
       tenant_id: tenant.id,
       vendor_code: form.vendor_code.trim(),
       vendor_name: form.vendor_name.trim(),
       phone_number: form.phone_number.trim() || null,
       gst_number: form.gst_number.trim() || null,
       notes: form.notes.trim() || null,
-      is_active: true,
     })
 
     setSaving(false)
 
-    if (insertError) {
-      setError(insertError.message)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
 

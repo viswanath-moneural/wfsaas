@@ -9,10 +9,13 @@ import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
+import { useToast } from '@/lib/hooks/useToast'
 import { getSupabaseClient } from '@/lib/supabase'
 
 export default function EmployeesPage() {
   const { tenant, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const canCreate = permissions?.is_admin || permissions?.module_permissions.hr?.can_create
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,9 +35,10 @@ export default function EmployeesPage() {
     if (!tenant?.id || !canCreate) return
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('employees').insert({ tenant_id: tenant.id, employee_code: form.employee_code.trim(), full_name: form.full_name.trim(), phone: form.phone.trim() || null, designation: form.designation.trim() || null, department: form.department.trim() || null, date_of_joining: form.date_of_joining, is_active: true })
+    const { data, error } = await supabase.from('employees').insert({ tenant_id: tenant.id, employee_code: form.employee_code.trim(), full_name: form.full_name.trim(), phone: form.phone.trim() || null, designation: form.designation.trim() || null, department: form.department.trim() || null, date_of_joining: form.date_of_joining, is_active: true }).select('id').single()
     setSaving(false)
-    if (insertError) { setError(insertError.message); return }
+    if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to create employee.'); return }
+    if (!data) return
     setForm({ employee_code: '', full_name: '', phone: '', designation: '', department: '', date_of_joining: new Date().toISOString().split('T')[0] })
     await load(tenant.id)
   }

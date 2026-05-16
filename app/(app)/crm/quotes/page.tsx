@@ -10,9 +10,12 @@ import Badge from '@/components/ui/Badge'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { useToast } from '@/lib/hooks/useToast'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function QuotesPage() {
   const { tenant, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const canCreate = permissions?.is_admin || permissions?.module_permissions.crm?.can_create
   const [rows, setRows] = useState<any[]>([])
   const [parties, setParties] = useState<any[]>([])
@@ -37,9 +40,9 @@ export default function QuotesPage() {
     if (!tenant?.id || !canCreate) return
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('quotes').insert({ tenant_id: tenant.id, quote_code: form.quote_code.trim(), party_id: form.party_id || null, quote_date: form.quote_date, valid_until: form.valid_until || null, status: form.status, notes: form.notes.trim() || null })
+    const { data, error } = await supabase.from('quotes').insert({ tenant_id: tenant.id, quote_code: form.quote_code.trim(), party_id: form.party_id || null, quote_date: form.quote_date, valid_until: form.valid_until || null, status: form.status, notes: form.notes.trim() || null }).select('id').single()
     setSaving(false)
-    if (insertError) { setError(insertError.message); return }
+    if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to create quote.'); return }
     setForm({ quote_code: '', party_id: '', quote_date: new Date().toISOString().split('T')[0], valid_until: '', status: 'draft', notes: '' })
     await load(tenant.id)
   }

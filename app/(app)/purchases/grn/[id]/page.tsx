@@ -10,9 +10,12 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import { isPurchaseEditable } from '@/lib/transactions'
+import { useToast } from '@/lib/hooks/useToast'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function GrnDetailPage() {
   const { tenant, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const params = useParams<{ id: string }>()
   const [grn, setGrn] = useState<any>(null)
   const [materials, setMaterials] = useState<any[]>([])
@@ -35,7 +38,8 @@ export default function GrnDetailPage() {
     e.preventDefault(); if (!params.id) return
     if (!canEditLines) { setError('GRN lines can only be edited while linked PO is draft or approved.'); return }
     const supabase = getSupabaseClient()
-    await supabase.from('grn_items').insert({ grn_id: params.id, material_id: form.material_id, received_qty: Number(form.received_qty), rejected_qty: Number(form.rejected_qty), unit: form.unit, rate: Number(form.rate), batch_no: form.batch_no || null })
+    const { data, error } = await supabase.from('grn_items').insert({ grn_id: params.id, material_id: form.material_id, received_qty: Number(form.received_qty), rejected_qty: Number(form.rejected_qty), unit: form.unit, rate: Number(form.rate), batch_no: form.batch_no || null }).select('id').single()
+    if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to add GRN item.'); return }
     if (tenant?.id) await load(tenant.id, params.id)
   }
   return <>

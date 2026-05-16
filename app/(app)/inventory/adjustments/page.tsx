@@ -8,9 +8,12 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { useToast } from '@/lib/hooks/useToast'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function AdjustmentsPage() {
   const { tenant, user, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const [rows, setRows] = useState<any[]>([])
   const [materials, setMaterials] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
@@ -34,12 +37,13 @@ export default function AdjustmentsPage() {
   async function create(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); if (!tenant?.id) return
     if (!canCreate) { setError('You do not have permission to post stock adjustments.'); return }
-    setSaving(true)
+    setSaving(true); setError('')
     const supabase = getSupabaseClient()
-    await supabase.from('stock_adjustments').insert({
+    const { data, error } = await supabase.from('stock_adjustments').insert({
       tenant_id: tenant.id, adjustment_code: form.adjustment_code, adjustment_date: form.adjustment_date, item_type: form.item_type, material_id: form.item_type === 'material' ? form.material_id : null,
       product_id: form.item_type === 'product' ? form.product_id : null, warehouse_id: form.warehouse_id || null, qty: Number(form.qty), unit: form.unit, reason_code: form.reason_code || null, notes: form.notes || null, approved_by: user?.id ?? null,
-    })
+    }).select('id').single()
+    if (handleSupabaseError(error, notifyError)) { setSaving(false); setError(error?.message ?? 'Failed to save stock adjustment.'); return }
     setSaving(false); await load(tenant.id)
   }
   const columns: Column<any>[] = useMemo(() => [

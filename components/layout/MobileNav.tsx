@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { MODULE_REGISTRY, type ModuleKey } from '@/lib/modules'
+import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
 import { canAccessModule } from '@/lib/permissions'
 
@@ -24,6 +25,14 @@ export default function MobileNav() {
       <nav className="mobile-nav" aria-label="Mobile navigation">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+          if (item.comingSoon) {
+            return (
+              <div key={item.key} className={`nav-item nav-item--disabled ${active ? 'nav-item--active' : ''}`} aria-disabled="true">
+                <span>{item.label}</span>
+                <Badge variant="warning">Soon</Badge>
+              </div>
+            )
+          }
           return (
             <Link key={item.key} href={item.href} className={`nav-item ${active ? 'nav-item--active' : ''}`}>
               <span>{item.label}</span>
@@ -55,9 +64,15 @@ export default function MobileNav() {
           font-weight: var(--font-medium);
           text-align: center;
         }
+        .nav-item :global(.badge) {
+          margin-top: 2px;
+        }
         .nav-item--active {
           background: var(--color-primary-50);
           color: var(--color-primary-700);
+        }
+        .nav-item--disabled {
+          opacity: 0.7;
         }
         @media (max-width: 860px) {
           .mobile-nav {

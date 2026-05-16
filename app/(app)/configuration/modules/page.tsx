@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge'
 import { MODULE_LIST } from '@/lib/modules'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { toggleModule } from '@/app/actions/platform'
 
 export default function ConfigurationModulesPage() {
   const { org, permissions } = useAuth()
@@ -41,26 +42,15 @@ export default function ConfigurationModulesPage() {
     if (!org?.id || !canEdit) return
     setSavingKey(moduleKey)
     setError('')
-    const supabase = getSupabaseClient()
-    const existing = await supabase
-      .from('org_modules')
-      .select('id')
-      .eq('org_id', org.id)
-      .eq('module_key', moduleKey)
-      .maybeSingle()
-
-    const result = existing.data?.id
-      ? await supabase
-          .from('org_modules')
-          .update({ is_enabled: nextValue, last_modified_at: new Date().toISOString() })
-          .eq('id', existing.data.id)
-      : await supabase
-          .from('org_modules')
-          .insert({ org_id: org.id, module_key: moduleKey, is_enabled: nextValue })
+    const result = await toggleModule({
+      org_id: org.id,
+      module_key: moduleKey,
+      enabled: nextValue,
+    })
 
     setSavingKey('')
-    if (result.error) {
-      setError(result.error.message)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
     setEnabled((prev) => ({ ...prev, [moduleKey]: nextValue }))
@@ -81,7 +71,7 @@ export default function ConfigurationModulesPage() {
               <Card key={moduleItem.key}>
                 <div className="row">
                   <div>
-                    <h3>{moduleItem.label}</h3>
+                    <h3>{moduleItem.label} {moduleItem.comingSoon && <Badge variant="warning">Coming Soon</Badge>}</h3>
                     <p>{moduleItem.description}</p>
                   </div>
                   <Badge variant={on ? 'success' : 'slate'}>{on ? 'Enabled' : 'Disabled'}</Badge>
@@ -107,7 +97,7 @@ export default function ConfigurationModulesPage() {
       <style jsx>{`
         .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
         .row { display: flex; justify-content: space-between; gap: var(--space-3); }
-        h3 { margin: 0; font-size: var(--text-base); }
+        h3 { margin: 0; font-size: var(--text-base); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
         p { margin: var(--space-1) 0 0; color: var(--text-secondary); font-size: var(--text-sm); }
         .actions { margin-top: var(--space-4); display: flex; align-items: center; gap: var(--space-2); }
         .hint { color: var(--text-secondary); font-size: var(--text-xs); }

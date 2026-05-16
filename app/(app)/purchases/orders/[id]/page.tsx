@@ -11,9 +11,12 @@ import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import { canTransitionPurchaseStatus, isPurchaseEditable } from '@/lib/transactions'
+import { useToast } from '@/lib/hooks/useToast'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function PurchaseOrderDetailPage() {
   const { tenant, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const params = useParams<{ id: string }>()
   const [po, setPo] = useState<any>(null)
   const [materials, setMaterials] = useState<any[]>([])
@@ -37,7 +40,8 @@ export default function PurchaseOrderDetailPage() {
     e.preventDefault(); if (!params.id) return
     if (!canEditLines) { setError('PO lines can only be edited in draft or approved status.'); return }
     const supabase = getSupabaseClient()
-    await supabase.from('purchase_order_items').insert({ po_id: params.id, material_id: form.material_id, ordered_qty: Number(form.ordered_qty), unit: form.unit, rate: Number(form.rate), sort_order: items.length + 1 })
+    const { data, error } = await supabase.from('purchase_order_items').insert({ po_id: params.id, material_id: form.material_id, ordered_qty: Number(form.ordered_qty), unit: form.unit, rate: Number(form.rate), sort_order: items.length + 1 }).select('id').single()
+    if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to add purchase order item.'); return }
     if (tenant?.id) await load(tenant.id, params.id)
   }
   async function saveStatus() {
@@ -45,7 +49,8 @@ export default function PurchaseOrderDetailPage() {
     if (!canUpdate) return
     if (!canTransitionPurchaseStatus(po.status, status)) { setError(`Invalid status transition from ${po.status ?? 'draft'} to ${status}.`); return }
     const supabase = getSupabaseClient()
-    await supabase.from('purchase_orders').update({ status }).eq('tenant_id', tenant.id).eq('id', params.id)
+    const { data, error } = await supabase.from('purchase_orders').update({ status }).eq('tenant_id', tenant.id).eq('id', params.id).select('id').single()
+    if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to update purchase order status.'); return }
     await load(tenant.id, params.id)
   }
   return <>

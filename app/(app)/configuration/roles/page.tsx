@@ -9,6 +9,7 @@ import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { createRole as createRoleAction } from '@/app/actions/platform'
 
 interface RoleRow {
   id: string
@@ -58,16 +59,14 @@ export default function RolesPage() {
     if (!org?.id || !canEdit) return
     setSaving(true)
     setError('')
-    const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('roles').insert({
+    const result = await createRoleAction({
       org_id: org.id,
       role_name: form.role_name.trim().toLowerCase(),
       description: form.description.trim() || null,
-      is_system: false,
     })
     setSaving(false)
-    if (insertError) {
-      setError(insertError.message)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
     setForm(EMPTY_FORM)

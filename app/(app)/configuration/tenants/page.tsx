@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { createFactory } from '@/app/actions/platform'
 
 interface TenantRow {
   id: string
@@ -85,18 +86,17 @@ export default function TenantsPage() {
     setSaving(true)
     setError('')
 
-    const { error: insertError } = await supabase.from('tenants').insert({
+    const result = await createFactory({
       org_id: targetOrgId,
       name: form.name.trim(),
       phone: form.phone.trim() || null,
       address: form.address.trim() || null,
-      is_active: true,
     })
 
     setSaving(false)
 
-    if (insertError) {
-      setError(insertError.message)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
 

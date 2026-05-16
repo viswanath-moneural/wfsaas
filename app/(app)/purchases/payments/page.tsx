@@ -12,9 +12,12 @@ import { getSupabaseClient } from '@/lib/supabase'
 import { formatMoney } from '@/lib/transactions'
 import { generateNextCode } from '@/lib/numberSeries'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import { useToast } from '@/lib/hooks/useToast'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function VendorPaymentsPage() {
   const { tenant, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const router = useRouter()
   const [rows, setRows] = useState<any[]>([])
   const [poOptions, setPoOptions] = useState<any[]>([])
@@ -46,7 +49,8 @@ export default function VendorPaymentsPage() {
       setError(`${seriesError.message} Configure Number Series in Configuration.`)
       return
     }
-    const { data } = await supabase.from('vendor_payments').insert({ tenant_id: tenant.id, payment_code: paymentCode, po_id: form.po_id, vendor_id: selected?.vendor_id, payment_date: form.payment_date, amount: Number(form.amount), payment_method: form.payment_method }).select('id').single()
+    const { data, error } = await supabase.from('vendor_payments').insert({ tenant_id: tenant.id, payment_code: paymentCode, po_id: form.po_id, vendor_id: selected?.vendor_id, payment_date: form.payment_date, amount: Number(form.amount), payment_method: form.payment_method }).select('id').single()
+    if (handleSupabaseError(error, notifyError)) { setSaving(false); setError(error?.message ?? 'Failed to save vendor payment.'); return }
     setSaving(false); await load(tenant.id); if (data?.id) router.push(`/purchases/payments/${data.id}`)
   }
   const columns: Column<any>[] = useMemo(() => [

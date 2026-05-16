@@ -20,6 +20,7 @@ export interface SubModule {
   label: string
   href: string
   permission?: string   // module_key for permission check, defaults to parent
+  comingSoon?: boolean
 }
 
 export interface ModuleDefinition {
@@ -31,6 +32,7 @@ export interface ModuleDefinition {
   color: string         // For module cards in admin
   alwaysOn?: boolean    // Cannot be disabled (dashboard, configuration)
   adminOnly?: boolean   // Only admins see this
+  comingSoon?: boolean
   subModules: SubModule[]
 }
 
@@ -54,13 +56,13 @@ export const MODULE_REGISTRY: Record<ModuleKey, ModuleDefinition> = {
     href: '/sales',
     color: '#16a34a',
     subModules: [
-      { key: 'sales.customers',  label: 'Customers',     href: '/sales/customers' },
+      { key: 'sales.customers',  label: 'Customers',     href: '/sales/customers', comingSoon: true },
       { key: 'sales.orders',     label: 'Sales Orders',  href: '/sales/orders' },
       { key: 'sales.invoices',   label: 'Invoices',      href: '/sales/invoices' },
       { key: 'sales.dispatch',   label: 'Dispatch',      href: '/sales/dispatch' },
-      { key: 'sales.returns',    label: 'Returns',       href: '/sales/returns' },
+      { key: 'sales.returns',    label: 'Returns',       href: '/sales/returns', comingSoon: true },
       { key: 'sales.payments',   label: 'Payments',      href: '/sales/payments' },
-      { key: 'sales.pricelists', label: 'Price Lists',   href: '/sales/price-lists' },
+      { key: 'sales.pricelists', label: 'Price Lists',   href: '/sales/price-lists', comingSoon: true },
     ],
   },
 
@@ -72,10 +74,10 @@ export const MODULE_REGISTRY: Record<ModuleKey, ModuleDefinition> = {
     href: '/purchases',
     color: '#d97706',
     subModules: [
-      { key: 'purchases.vendors',  label: 'Vendors',           href: '/purchases/vendors' },
+      { key: 'purchases.vendors',  label: 'Vendors',           href: '/purchases/vendors', comingSoon: true },
       { key: 'purchases.orders',   label: 'Purchase Orders',   href: '/purchases/orders' },
       { key: 'purchases.grn',      label: 'Goods Receipt',     href: '/purchases/grn' },
-      { key: 'purchases.returns',  label: 'Returns',           href: '/purchases/returns' },
+      { key: 'purchases.returns',  label: 'Returns',           href: '/purchases/returns', comingSoon: true },
       { key: 'purchases.payments', label: 'Vendor Payments',   href: '/purchases/payments' },
     ],
   },
@@ -87,14 +89,15 @@ export const MODULE_REGISTRY: Record<ModuleKey, ModuleDefinition> = {
     icon: 'Factory',
     href: '/manufacturing',
     color: '#7e22ce',
+    comingSoon: true,
     subModules: [
-      { key: 'manufacturing.workorders',  label: 'Work Orders',       href: '/manufacturing/work-orders' },
-      { key: 'manufacturing.production',  label: 'Production Runs',   href: '/manufacturing/production-runs' },
-      { key: 'manufacturing.machines',    label: 'Machines',          href: '/manufacturing/machines' },
-      { key: 'manufacturing.bom',         label: 'Bill of Materials', href: '/manufacturing/bom' },
-      { key: 'manufacturing.materials',   label: 'Material Usage',    href: '/manufacturing/material-usage' },
-      { key: 'manufacturing.quality',     label: 'Quality Checks',    href: '/manufacturing/quality' },
-      { key: 'manufacturing.downtime',    label: 'Downtime Logs',     href: '/manufacturing/downtime' },
+      { key: 'manufacturing.workorders',  label: 'Work Orders',       href: '/manufacturing/work-orders', comingSoon: true },
+      { key: 'manufacturing.production',  label: 'Production Runs',   href: '/manufacturing/production-runs', comingSoon: true },
+      { key: 'manufacturing.machines',    label: 'Machines',          href: '/manufacturing/machines', comingSoon: true },
+      { key: 'manufacturing.bom',         label: 'Bill of Materials', href: '/manufacturing/bom', comingSoon: true },
+      { key: 'manufacturing.materials',   label: 'Material Usage',    href: '/manufacturing/material-usage', comingSoon: true },
+      { key: 'manufacturing.quality',     label: 'Quality Checks',    href: '/manufacturing/quality', comingSoon: true },
+      { key: 'manufacturing.downtime',    label: 'Downtime Logs',     href: '/manufacturing/downtime', comingSoon: true },
     ],
   },
 
@@ -109,7 +112,7 @@ export const MODULE_REGISTRY: Record<ModuleKey, ModuleDefinition> = {
       { key: 'inventory.stock',       label: 'Stock Levels',    href: '/inventory/stock' },
       { key: 'inventory.movements',   label: 'Movements',       href: '/inventory/movements' },
       { key: 'inventory.adjustments', label: 'Adjustments',     href: '/inventory/adjustments' },
-      { key: 'inventory.warehouses',  label: 'Warehouses',      href: '/inventory/warehouses' },
+      { key: 'inventory.warehouses',  label: 'Warehouses',      href: '/inventory/warehouses', comingSoon: true },
     ],
   },
 
@@ -124,7 +127,7 @@ export const MODULE_REGISTRY: Record<ModuleKey, ModuleDefinition> = {
       { key: 'crm.leads',         label: 'Leads',         href: '/crm/leads' },
       { key: 'crm.opportunities', label: 'Opportunities', href: '/crm/opportunities' },
       { key: 'crm.quotes',        label: 'Quotes',        href: '/crm/quotes' },
-      { key: 'crm.parties',       label: 'Parties',       href: '/crm/parties' },
+      { key: 'crm.parties',       label: 'Parties',       href: '/crm/parties', comingSoon: true },
       { key: 'crm.interactions',  label: 'Interactions',  href: '/crm/interactions' },
     ],
   },
@@ -140,7 +143,7 @@ export const MODULE_REGISTRY: Record<ModuleKey, ModuleDefinition> = {
       { key: 'hr.employees',   label: 'Employees',   href: '/hr/employees' },
       { key: 'hr.attendance',  label: 'Attendance',  href: '/hr/attendance' },
       { key: 'hr.payroll',     label: 'Payroll',     href: '/hr/payroll' },
-      { key: 'hr.salary',      label: 'Salary Structures', href: '/hr/salary' },
+      { key: 'hr.salary',      label: 'Salary Structures', href: '/hr/salary', comingSoon: true },
     ],
   },
 
@@ -151,13 +154,14 @@ export const MODULE_REGISTRY: Record<ModuleKey, ModuleDefinition> = {
     icon: 'BarChart2',
     href: '/reports',
     color: '#6366f1',
+    comingSoon: true,
     subModules: [
-      { key: 'reports.sales',    label: 'Sales Reports',    href: '/reports/sales' },
-      { key: 'reports.purchase', label: 'Purchase Reports', href: '/reports/purchase' },
-      { key: 'reports.production',label:'Production Reports',href: '/reports/production' },
-      { key: 'reports.inventory',label: 'Inventory Reports',href: '/reports/inventory' },
-      { key: 'reports.hr',       label: 'HR Reports',       href: '/reports/hr' },
-      { key: 'reports.saved',    label: 'Saved Reports',    href: '/reports/saved' },
+      { key: 'reports.sales',    label: 'Sales Reports',    href: '/reports/sales', comingSoon: true },
+      { key: 'reports.purchase', label: 'Purchase Reports', href: '/reports/purchase', comingSoon: true },
+      { key: 'reports.production',label:'Production Reports',href: '/reports/production', comingSoon: true },
+      { key: 'reports.inventory',label: 'Inventory Reports',href: '/reports/inventory', comingSoon: true },
+      { key: 'reports.hr',       label: 'HR Reports',       href: '/reports/hr', comingSoon: true },
+      { key: 'reports.saved',    label: 'Saved Reports',    href: '/reports/saved', comingSoon: true },
     ],
   },
 
@@ -179,8 +183,8 @@ export const MODULE_REGISTRY: Record<ModuleKey, ModuleDefinition> = {
       { key: 'configuration.numberseries',label:'Number Series',    href: '/configuration/number-series' },
       { key: 'configuration.products',   label: 'Products',         href: '/configuration/products' },
       { key: 'configuration.materials',  label: 'Materials',        href: '/configuration/materials' },
-      { key: 'configuration.customfields',label:'Custom Fields',    href: '/configuration/custom-fields' },
-      { key: 'configuration.whatsapp',   label: 'WhatsApp',         href: '/configuration/whatsapp' },
+      { key: 'configuration.customfields',label:'Custom Fields',    href: '/configuration/custom-fields', comingSoon: true },
+      { key: 'configuration.whatsapp',   label: 'WhatsApp',         href: '/configuration/whatsapp', comingSoon: true },
     ],
   },
 }

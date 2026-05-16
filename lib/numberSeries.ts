@@ -15,6 +15,20 @@ interface NumberSeriesConfig {
   is_active: boolean | null
 }
 
+const SERIES_ALIASES: Record<string, string> = {
+  PO: 'purchase_order',
+  GRN: 'grn',
+}
+
+const DEFAULT_SERIES: Record<string, { prefix: string; separator: string; num_digits: number; start_from: number; include_fin_year: boolean; include_month: boolean }> = {
+  purchase_order: { prefix: 'PO', separator: '-', num_digits: 4, start_from: 1, include_fin_year: true, include_month: false },
+  grn: { prefix: 'GRN', separator: '-', num_digits: 4, start_from: 1, include_fin_year: true, include_month: false },
+}
+
+function normalizeEntityType(entityType: string) {
+  return SERIES_ALIASES[entityType] ?? entityType
+}
+
 function getFinancialYearLabel(date = new Date()) {
   const year = date.getFullYear()
   const month = date.getMonth() + 1
@@ -36,17 +50,18 @@ function buildCode(config: NumberSeriesConfig, nextValue: number) {
 
 export async function generateNextCode(tenantId: string, entityType: string) {
   const supabase = getSupabaseClient()
+  const normalizedEntityType = normalizeEntityType(entityType)
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const { data: config, error: fetchError } = await supabase
       .from('number_series_config')
       .select('id, tenant_id, entity_type, prefix, suffix, separator, include_fin_year, include_month, num_digits, start_from, current_value, is_active')
       .eq('tenant_id', tenantId)
-      .eq('entity_type', entityType)
+      .eq('entity_type', normalizedEntityType)
       .eq('is_active', true)
       .maybeSingle()
 
     if (fetchError) throw fetchError
-    if (!config) throw new Error(`Number series missing for ${entityType}. Configure it first.`)
+    if (!config) throw new Error(`Number series missing for ${normalizedEntityType}. Configure it first.`)
 
     const currentValue = Number(config.current_value ?? (Number(config.start_from ?? 1) - 1))
     const nextValue = currentValue + 1
@@ -68,5 +83,45 @@ export async function generateNextCode(tenantId: string, entityType: string) {
     }
   }
 
-  throw new Error(`Could not generate a unique code for ${entityType}. Please retry.`)
+  throw new Error(`Could not generate a unique code for ${normalizedEntityType}. Please retry.`)
+}
+
+export async function seedDefaultNumberSeries(tenantId: string, entityTypes: string[]) {
+  const supabase = getSupabaseClient()
+  const normalizedTypes = Array.from(new Set(entityTypes.map(normalizeEntityType)))
+
+  for (const entityType of normalizedTypes) {
+    const defaults = DEFAULT_SERIES[entityType]
+    if (!defaults) continue
+
+    const { data: existing, error: lookupError } = await supabase
+      .from('number_series_config')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('entity_type', entityType)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    if (lookupError) throw lookupError
+    if (existing?.id) continue
+
+    const { error: insertError } = await supabase.from('number_series_config').insert({
+      tenant_id: tenantId,
+      entity_type: entityType,
+      prefix: defaults.prefix,
+      suffix: null,
+      separator: defaults.separator,
+      include_fin_year: defaults.include_fin_year,
+      include_month: defaults.include_month,
+      num_digits: defaults.num_digits,
+      allow_manual_override: false,
+      start_from: defaults.start_from,
+      current_value: defaults.start_from - 1,
+      reset_frequency: 'never',
+      is_active: true,
+      created_at: new Date().toISOString(),
+    })
+
+    if (insertError) throw insertError
+  }
 }

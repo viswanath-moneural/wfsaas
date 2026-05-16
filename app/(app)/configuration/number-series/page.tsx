@@ -10,6 +10,7 @@ import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import { saveNumberSeries } from '@/app/actions/platform'
 
 const ENTITY_OPTIONS = ['sales_order', 'dispatch_order', 'invoice', 'customer_payment', 'vendor_payment', 'purchase_order', 'grn']
 
@@ -34,8 +35,7 @@ export default function NumberSeriesPage() {
     e.preventDefault()
     if (!tenant?.id || !canEdit) return
     setSaving(true); setError('')
-    const supabase = getSupabaseClient()
-    const payload = {
+    const result = await saveNumberSeries({
       tenant_id: tenant.id,
       entity_type: form.entity_type,
       prefix: form.prefix || null,
@@ -45,14 +45,9 @@ export default function NumberSeriesPage() {
       start_from: Number(form.start_from),
       include_fin_year: form.include_fin_year,
       include_month: form.include_month,
-      is_active: true,
-    }
-    const existing = rows.find((row) => row.entity_type === form.entity_type)
-    const { error: saveError } = existing
-      ? await supabase.from('number_series_config').update(payload).eq('id', existing.id)
-      : await supabase.from('number_series_config').insert(payload)
+    })
     setSaving(false)
-    if (saveError) { setError(saveError.message); return }
+    if (!result.ok) { setError(result.message); return }
     await load(tenant.id)
   }
 

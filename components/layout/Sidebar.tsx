@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { MODULE_REGISTRY, SIDEBAR_MODULE_ORDER } from '@/lib/modules'
+import Badge from '@/components/ui/Badge'
 import { canAccessModule } from '@/lib/permissions'
 import { useAuth } from '@/lib/AuthContext'
 
@@ -31,6 +32,19 @@ export default function Sidebar() {
       <nav className="sidebar__nav" aria-label="Main navigation">
         {modules.map((moduleItem) => {
           const active = pathname === moduleItem.href || pathname.startsWith(`${moduleItem.href}/`)
+          if (moduleItem.comingSoon) {
+            return (
+              <div
+                key={moduleItem.key}
+                className={`sidebar__item sidebar__item--disabled ${active ? 'sidebar__item--active' : ''}`}
+                aria-disabled="true"
+              >
+                <span className="sidebar__icon" style={{ background: moduleItem.color }} />
+                <span>{moduleItem.label}</span>
+                <Badge variant="warning">Soon</Badge>
+              </div>
+            )
+          }
           return (
             <Link
               key={moduleItem.key}
@@ -103,6 +117,10 @@ export default function Sidebar() {
           font-weight: var(--font-medium);
         }
 
+        .sidebar__item :global(.badge) {
+          margin-left: auto;
+        }
+
         .sidebar__item:hover {
           background: var(--surface-sidebar-hover);
           color: var(--text-on-nav-active);
@@ -111,6 +129,16 @@ export default function Sidebar() {
         .sidebar__item--active {
           background: var(--surface-sidebar-active);
           color: var(--text-on-nav-active);
+        }
+
+        .sidebar__item--disabled {
+          cursor: default;
+          opacity: 0.72;
+        }
+
+        .sidebar__item--disabled:hover {
+          background: transparent;
+          color: var(--text-on-nav);
         }
 
         .sidebar__icon {

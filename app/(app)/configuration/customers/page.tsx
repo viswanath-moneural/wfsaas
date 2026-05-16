@@ -10,6 +10,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import { createCustomer } from '@/app/actions/platform'
 
 interface CustomerRow {
   id: string
@@ -72,8 +73,7 @@ export default function CustomersPage() {
     setSaving(true)
     setError('')
 
-    const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('customers').insert({
+    const result = await createCustomer({
       tenant_id: tenant.id,
       customer_code: form.customer_code.trim(),
       customer_name: form.customer_name.trim(),
@@ -82,13 +82,12 @@ export default function CustomersPage() {
       gst_number: form.gst_number.trim() || null,
       city: form.city.trim() || null,
       state: form.state.trim() || null,
-      is_active: true,
     })
 
     setSaving(false)
 
-    if (insertError) {
-      setError(insertError.message)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
 

@@ -10,23 +10,37 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { generateNextCode, seedDefaultNumberSeries } from '@/lib/numberSeries'
+import { useToast } from '@/lib/hooks/useToast'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 interface Vendor { id: string; vendor_code: string; vendor_name: string }
 interface PoRow { id: string; po_code: string; po_date: string; expected_date: string | null; status: string | null; vendors: Vendor | null }
 
 export default function PurchaseOrdersPage() {
   const { tenant, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const router = useRouter()
   const [rows, setRows] = useState<PoRow[]>([])
   const [vendors, setVendors] = useState<Vendor[]>([])
-  const [form, setForm] = useState({ po_code: '', vendor_id: '', po_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' })
+  const [form, setForm] = useState({ vendor_id: '', po_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const canCreate = permissions?.is_admin || permissions?.module_permissions.purchases?.can_create
   useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void fetchData(tenant.id) }, [tenant?.id])
+  useEffect(() => {
+    if (!form.vendor_id && vendors[0]?.id) {
+      setForm((prev) => ({ ...prev, vendor_id: vendors[0].id }))
+    }
+  }, [vendors, form.vendor_id])
   async function fetchData(tenantId: string) {
     const supabase = getSupabaseClient()
+    try {
+      await seedDefaultNumberSeries(tenantId, ['PO'])
+    } catch (seriesError: any) {
+      setError(seriesError.message)
+    }
     const [{ data: po }, { data: v }] = await Promise.all([
       supabase.from('purchase_orders').select('id, po_code, po_date, expected_date, status, vendors(id, vendor_code, vendor_name)').eq('tenant_id', tenantId).order('po_date', { ascending: false }),
       supabase.from('vendors').select('id, vendor_code, vendor_name').eq('tenant_id', tenantId).eq('is_active', true).order('vendor_name', { ascending: true }),
@@ -38,10 +52,21 @@ export default function PurchaseOrdersPage() {
   async function createPo(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); if (!tenant?.id) return
     if (!canCreate) { setError('You do not have permission to create purchase orders.'); return }
-    setSaving(true)
+    if (!form.vendor_id) { setError('Select a vendor before creating a purchase order.'); return }
+    setSaving(true); setError('')
     const supabase = getSupabaseClient()
-    const { data } = await supabase.from('purchase_orders').insert({ tenant_id: tenant.id, po_code: form.po_code, vendor_id: form.vendor_id, po_date: form.po_date, expected_date: form.expected_date || null, status: 'draft', notes: form.notes || null }).select('id').single()
+    let poCode = ''
+    try {
+      await seedDefaultNumberSeries(tenant.id, ['PO'])
+      poCode = (await generateNextCode(tenant.id, 'PO')).code
+    } catch (seriesError: any) {
+      setSaving(false)
+      setError(seriesError.message)
+      return
+    }
+    const { data, error } = await supabase.from('purchase_orders').insert({ tenant_id: tenant.id, po_code: poCode, vendor_id: form.vendor_id, po_date: form.po_date, expected_date: form.expected_date || null, status: 'draft', notes: form.notes || null, name: poCode }).select('id').single()
     setSaving(false)
+    if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to create purchase order.'); return }
     await fetchData(tenant.id)
     if (data?.id) router.push(`/purchases/orders/${data.id}`)
   }
@@ -53,7 +78,7 @@ export default function PurchaseOrdersPage() {
     <PageHeader title="Purchase Orders" description="Create and track purchase orders." />
     <section className="layout">
       <Card><h2>Create PO</h2><form onSubmit={createPo}>
-        <Input label="PO number" value={form.po_code} onChange={(e) => setForm((p) => ({ ...p, po_code: e.target.value }))} required />
+        <Input label="PO number" value="Auto-generated from Number Series" disabled />
         <label><span>Vendor</span><select value={form.vendor_id} onChange={(e) => setForm((p) => ({ ...p, vendor_id: e.target.value }))}>{vendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.vendor_name} ({vendor.vendor_code})</option>)}</select></label>
         <Input label="PO date" type="date" value={form.po_date} onChange={(e) => setForm((p) => ({ ...p, po_date: e.target.value }))} required />
         <Input label="Expected date" type="date" value={form.expected_date} onChange={(e) => setForm((p) => ({ ...p, expected_date: e.target.value }))} />

@@ -10,6 +10,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import { createMaterial } from '@/app/actions/platform'
 
 interface MaterialRow {
   id: string
@@ -66,20 +67,18 @@ export default function MaterialsPage() {
     setSaving(true)
     setError('')
 
-    const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('materials').insert({
+    const result = await createMaterial({
       tenant_id: tenant.id,
       material_code: form.material_code.trim(),
       material_name: form.material_name.trim(),
       unit: form.unit.trim(),
       reorder_level: form.reorder_level ? Number(form.reorder_level) : null,
-      is_active: true,
     })
 
     setSaving(false)
 
-    if (insertError) {
-      setError(insertError.message)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
 

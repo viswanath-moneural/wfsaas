@@ -10,6 +10,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import { createProduct } from '@/app/actions/platform'
 
 interface ProductRow {
   id: string
@@ -68,21 +69,19 @@ export default function ProductsPage() {
     setSaving(true)
     setError('')
 
-    const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('products').insert({
+    const result = await createProduct({
       tenant_id: tenant.id,
       product_code: form.product_code.trim(),
       product_name: form.product_name.trim(),
       category: form.category,
       sku: form.sku.trim() || null,
       reorder_level: form.reorder_level ? Number(form.reorder_level) : null,
-      is_active: true,
     })
 
     setSaving(false)
 
-    if (insertError) {
-      setError(insertError.message)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
 

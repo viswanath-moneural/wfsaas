@@ -9,6 +9,7 @@ import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { createOrganisation as createOrganisationAction } from '@/app/actions/platform'
 
 interface OrganisationRow {
   id: string
@@ -55,17 +56,15 @@ export default function OrganisationPage() {
     if (!canEdit) return
     setSaving(true)
     setError('')
-    const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('organisations').insert({
+    const result = await createOrganisationAction({
       name: form.name.trim(),
       slug: form.slug.trim().toLowerCase(),
       country: form.country.trim() || null,
       timezone: form.timezone.trim() || null,
-      is_active: true,
     })
     setSaving(false)
-    if (insertError) {
-      setError(insertError.message)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
     setForm(EMPTY_FORM)

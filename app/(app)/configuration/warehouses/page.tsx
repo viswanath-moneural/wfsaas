@@ -10,6 +10,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import { createWarehouse } from '@/app/actions/platform'
 
 interface WarehouseRow {
   id: string
@@ -69,8 +70,7 @@ export default function WarehousesPage() {
     setSaving(true)
     setError('')
 
-    const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('warehouses').insert({
+    const result = await createWarehouse({
       tenant_id: tenant.id,
       warehouse_code: form.warehouse_code.trim(),
       warehouse_name: form.warehouse_name.trim(),
@@ -78,13 +78,12 @@ export default function WarehousesPage() {
       city: form.city.trim() || null,
       state: form.state.trim() || null,
       is_default: form.is_default,
-      is_active: true,
     })
 
     setSaving(false)
 
-    if (insertError) {
-      setError(insertError.message)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
 

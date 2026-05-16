@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase.server'
 import type { UserPermissions } from '@/lib/permissions'
+import { isPrivilegedRole } from './isPrivilegedRole'
 
 export interface CurrentUserContext {
   userId: string
@@ -53,8 +54,12 @@ export async function getCurrentUserContext(): Promise<CurrentUserContext | null
   const firstRole = userRoles?.[0] as any
   const roleId = firstRole?.role_id ?? null
   const roleName = firstRole?.roles?.role_name ?? appUser.role ?? 'operator'
-  const isSuperadmin = roleName === 'superadmin'
-  const isAdmin = isSuperadmin || roleName === 'admin'
+  const roleNames = [
+    appUser.role,
+    ...((userRoles ?? []).map((row: any) => row.roles?.role_name)),
+  ]
+  const isSuperadmin = roleNames.some((role) => String(role ?? '').trim().toLowerCase() === 'superadmin')
+  const isAdmin = roleNames.some(isPrivilegedRole)
 
   const { data: rolePermissions } = roleId
     ? await supabase

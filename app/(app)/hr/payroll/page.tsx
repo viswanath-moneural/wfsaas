@@ -9,11 +9,14 @@ import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
+import { handleSupabaseError } from '@/lib/handleSupabaseError'
+import { useToast } from '@/lib/hooks/useToast'
 import { getSupabaseClient } from '@/lib/supabase'
 import { formatMoney } from '@/lib/transactions'
 
 export default function PayrollPage() {
   const { tenant, permissions } = useAuth()
+  const { error: notifyError } = useToast()
   const canCreate = permissions?.is_admin || permissions?.module_permissions.hr?.can_create
   const [rows, setRows] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
@@ -40,9 +43,10 @@ export default function PayrollPage() {
     const gross = Number(form.gross_pay)
     const deductions = Number(form.deductions)
     const supabase = getSupabaseClient()
-    const { error: insertError } = await supabase.from('payroll_runs').insert({ tenant_id: tenant.id, employee_id: form.employee_id || null, month_year: form.month_year, days_present: Number(form.days_present), overtime_hours: Number(form.overtime_hours), gross_pay: gross, deductions, net_pay: gross - deductions, status: form.status })
+    const { data, error } = await supabase.from('payroll_runs').insert({ tenant_id: tenant.id, employee_id: form.employee_id || null, month_year: form.month_year, days_present: Number(form.days_present), overtime_hours: Number(form.overtime_hours), gross_pay: gross, deductions, net_pay: gross - deductions, status: form.status }).select('id').single()
     setSaving(false)
-    if (insertError) { setError(insertError.message); return }
+    if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to save payroll.'); return }
+    if (!data) return
     setForm({ employee_id: '', month_year: '', days_present: '0', overtime_hours: '0', gross_pay: '0', deductions: '0', status: 'draft' })
     await load(tenant.id)
   }

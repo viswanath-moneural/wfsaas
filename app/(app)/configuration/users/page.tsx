@@ -9,6 +9,7 @@ import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
+import { createUser } from '@/app/actions/users/createUser'
 
 interface UserRow {
   id: string
@@ -22,24 +23,41 @@ interface UserRow {
 
 interface RoleRow {
   id: string
+  org_id: string
   role_name: string
 }
 
+interface OrganisationRow {
+  id: string
+  name: string
+  slug: string
+}
+
+interface TenantRow {
+  id: string
+  org_id: string
+  name: string
+}
+
 export default function ConfigurationUsersPage() {
-  const { org, allTenants, user, permissions } = useAuth()
+  const { org, user, permissions } = useAuth()
   const role = String(user?.role ?? '').toLowerCase()
   const canEdit = Boolean(permissions?.is_admin || role === 'superadmin' || role === 'owner' || role === 'admin')
   const [rows, setRows] = useState<UserRow[]>([])
+  const [organisations, setOrganisations] = useState<OrganisationRow[]>([])
+  const [tenants, setTenants] = useState<TenantRow[]>([])
   const [roles, setRoles] = useState<RoleRow[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null)
   const [form, setForm] = useState({
     full_name: '',
     email: '',
-    phone: '',
-    role: 'manager',
-    tenant_id: '',
+    temporary_password: '',
+    org_id: org?.id ?? '',
+    factory_id: '',
+    role_id: '',
   })
 
   useEffect(() => {
@@ -47,14 +65,44 @@ export default function ConfigurationUsersPage() {
       setLoading(false)
       return
     }
-    void load(org.id)
+    setForm((prev) => ({ ...prev, org_id: prev.org_id || org.id }))
+    void loadLookups(org.id)
   }, [org?.id])
 
-  async function load(orgId: string) {
+  useEffect(() => {
+    if (!form.org_id) return
+    void loadOrgScopedData(form.org_id)
+  }, [form.org_id])
+
+  async function loadLookups(defaultOrgId: string) {
     const supabase = getSupabaseClient()
     setLoading(true)
     setError('')
-    const [{ data: usersData, error: usersError }, { data: rolesData, error: rolesError }] = await Promise.all([
+    const { data: orgData, error: orgError } = await supabase
+      .from('organisations')
+      .select('id, name, slug')
+      .order('name', { ascending: true })
+
+    if (orgError) {
+      setOrganisations(org ? [{ id: org.id, name: org.name, slug: org.slug }] : [])
+      setError(orgError.message)
+    } else {
+      const loadedOrgs = (orgData as OrganisationRow[]) ?? []
+      setOrganisations(loadedOrgs.length > 0 ? loadedOrgs : org ? [{ id: org.id, name: org.name, slug: org.slug }] : [])
+    }
+
+    await loadOrgScopedData(defaultOrgId)
+  }
+
+  async function loadOrgScopedData(orgId: string) {
+    const supabase = getSupabaseClient()
+    setLoading(true)
+    setError('')
+    const [
+      { data: usersData, error: usersError },
+      { data: rolesData, error: rolesError },
+      { data: tenantsData, error: tenantsError },
+    ] = await Promise.all([
       supabase
         .from('users')
         .select('id, full_name, email, phone, role, is_active, tenants(name)')
@@ -62,56 +110,68 @@ export default function ConfigurationUsersPage() {
         .order('created_at', { ascending: false }),
       supabase
         .from('roles')
-        .select('id, role_name')
+        .select('id, org_id, role_name')
         .eq('org_id', orgId)
         .order('role_name', { ascending: true }),
+      supabase
+        .from('tenants')
+        .select('id, org_id, name')
+        .eq('org_id', orgId)
+        .eq('is_active', true)
+        .order('name', { ascending: true }),
     ])
     if (usersError) setError(usersError.message)
     if (rolesError) setError(rolesError.message)
+    if (tenantsError) setError(tenantsError.message)
     setRows((usersData as unknown as UserRow[]) ?? [])
     setRoles((rolesData as RoleRow[]) ?? [])
+    setTenants((tenantsData as TenantRow[]) ?? [])
+    setForm((prev) => ({
+      ...prev,
+      role_id: (rolesData as RoleRow[] | null)?.some((item) => item.id === prev.role_id)
+        ? prev.role_id
+        : ((rolesData as RoleRow[] | null)?.[0]?.id ?? ''),
+      factory_id: (tenantsData as TenantRow[] | null)?.some((item) => item.id === prev.factory_id)
+        ? prev.factory_id
+        : '',
+    }))
     setLoading(false)
   }
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!org?.id || !canEdit) return
+    if (!form.org_id || !canEdit) return
     setSaving(true)
     setError('')
-    const supabase = getSupabaseClient()
-    const selectedRole = roles.find((item) => item.role_name === form.role)
-    const newId = crypto.randomUUID()
-    const { error: userInsertError } = await supabase.from('users').insert({
-      id: newId,
-      org_id: org.id,
-      tenant_id: form.tenant_id || null,
-      full_name: form.full_name.trim(),
-      email: form.email.trim().toLowerCase(),
-      phone: form.phone.trim() || '0000000000',
-      role: form.role as any,
-      is_active: true,
+
+    const result = await createUser({
+      name: form.full_name,
+      email: form.email,
+      temporaryPassword: form.temporary_password,
+      org_id: form.org_id,
+      factory_id: form.factory_id || null,
+      role_id: form.role_id,
     })
-    if (userInsertError) {
+
+    if (!result.ok) {
       setSaving(false)
-      setError(userInsertError.message)
+      setError(result.message)
       return
     }
-    if (selectedRole?.id) {
-      const { error: roleAssignError } = await supabase.from('user_roles').insert({
-        user_id: newId,
-        role_id: selectedRole.id,
-        assigned_by: user?.id ?? null,
-        is_active: true,
-      })
-      if (roleAssignError) {
-        setSaving(false)
-        setError(roleAssignError.message)
-        return
-      }
-    }
+
+    const createdEmail = form.email.trim().toLowerCase()
+    const createdPassword = form.temporary_password
     setSaving(false)
-    setForm({ full_name: '', email: '', phone: '', role: 'manager', tenant_id: '' })
-    await load(org.id)
+    setCreatedCredentials({ email: createdEmail, password: createdPassword })
+    setForm((prev) => ({
+      full_name: '',
+      email: '',
+      temporary_password: '',
+      org_id: prev.org_id,
+      factory_id: '',
+      role_id: roles[0]?.id ?? '',
+    }))
+    await loadOrgScopedData(form.org_id)
   }
 
   const columns: Column<UserRow>[] = useMemo(() => [
@@ -134,15 +194,51 @@ export default function ConfigurationUsersPage() {
             <form onSubmit={handleCreate}>
               <Input label="Full name" value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))} required disabled={!canEdit} />
               <Input label="Email" type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} required disabled={!canEdit} />
-              <Input label="Phone" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} disabled={!canEdit} />
-              <label><span>Role</span><select value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))} disabled={!canEdit}>{roles.map((item) => <option key={item.id} value={item.role_name}>{item.role_name}</option>)}</select></label>
-              <label><span>Factory</span><select value={form.tenant_id} onChange={(e) => setForm((p) => ({ ...p, tenant_id: e.target.value }))} disabled={!canEdit}><option value="">Org level / unassigned</option>{allTenants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+              <Input label="Temporary password" type="text" value={form.temporary_password} onChange={(e) => setForm((p) => ({ ...p, temporary_password: e.target.value }))} required disabled={!canEdit} />
+              <label>
+                <span>Organisation</span>
+                <select value={form.org_id} onChange={(e) => setForm((p) => ({ ...p, org_id: e.target.value, factory_id: '', role_id: '' }))} disabled={!canEdit}>
+                  {organisations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Role</span>
+                <select value={form.role_id} onChange={(e) => setForm((p) => ({ ...p, role_id: e.target.value }))} required disabled={!canEdit || roles.length === 0}>
+                  {roles.length === 0 ? <option value="">No roles available</option> : roles.map((item) => <option key={item.id} value={item.id}>{item.role_name}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Factory</span>
+                <select value={form.factory_id} onChange={(e) => setForm((p) => ({ ...p, factory_id: e.target.value }))} disabled={!canEdit}>
+                  <option value="">Org level / unassigned</option>
+                  {tenants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
               {error && <p className="form-error">{error}</p>}
-              <Button type="submit" loading={saving} disabled={!canEdit} fullWidth>Add user</Button>
+              <Button type="submit" loading={saving} disabled={!canEdit || !form.org_id || !form.role_id} fullWidth>Create login user</Button>
             </form>
           </Card>
           <DataTable columns={columns} data={rows} loading={loading} emptyTitle="No users found" emptyMessage="Add users and assign them roles." searchable searchPlaceholder="Search users..." />
         </section>
+      )}
+      {createdCredentials && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="created-user-title">
+            <Card>
+              <h2 id="created-user-title">User created</h2>
+              <p className="modal-text">Share these temporary login credentials with the user.</p>
+              <div className="credential-box">
+                <span>Email</span>
+                <strong>{createdCredentials.email}</strong>
+              </div>
+              <div className="credential-box">
+                <span>Temporary password</span>
+                <strong>{createdCredentials.password}</strong>
+              </div>
+              <Button fullWidth onClick={() => setCreatedCredentials(null)}>Done</Button>
+            </Card>
+          </div>
+        </div>
       )}
       <style jsx>{`
         .layout { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: var(--space-6); align-items: start; }
@@ -151,6 +247,12 @@ export default function ConfigurationUsersPage() {
         label { display: flex; flex-direction: column; gap: var(--space-1-5); }
         select { height: var(--input-height-md); border: 1px solid var(--border-default); border-radius: var(--input-radius); padding: 0 var(--input-px); background: var(--surface-input); }
         .form-error { margin: 0; color: var(--text-danger); font-size: var(--text-sm); }
+        .modal-backdrop { position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center; padding: var(--space-4); background: rgba(15, 23, 42, 0.45); }
+        .modal { width: min(440px, 100%); }
+        .modal-text { margin: 0 0 var(--space-4); color: var(--text-secondary); font-size: var(--text-sm); }
+        .credential-box { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); margin-bottom: var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--surface-page); }
+        .credential-box span { color: var(--text-secondary); font-size: var(--text-xs); }
+        .credential-box strong { color: var(--text-primary); font-size: var(--text-base); word-break: break-all; }
         @media (max-width: 920px) { .layout { grid-template-columns: 1fr; } }
       `}</style>
     </>
