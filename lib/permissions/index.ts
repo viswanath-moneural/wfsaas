@@ -31,6 +31,7 @@ export interface FieldPermission {
 
 export interface UserPermissions {
   role_name:         string
+  profile_name?:     string
   is_admin:          boolean
   module_permissions: Record<string, ModulePermission>
   permissions_map?: Record<string, ModulePermission>

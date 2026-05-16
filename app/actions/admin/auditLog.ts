@@ -74,6 +74,8 @@ export async function getAll(filters?: {
   org_id?: string
   actor_id?: string
   action?: string
+  entity_type?: string
+  actor_email?: string
   date_from?: string
   date_to?: string
   limit?: number
@@ -91,6 +93,8 @@ export async function getAll(filters?: {
     if (filters?.org_id) query = query.eq('org_id', filters.org_id)
     if (filters?.actor_id) query = query.eq('actor_id', filters.actor_id)
     if (filters?.action) query = query.eq('action', filters.action)
+    if (filters?.entity_type) query = query.eq('entity_type', filters.entity_type)
+    if (filters?.actor_email) query = query.ilike('actor_email', `%${filters.actor_email}%`)
     if (filters?.date_from) query = query.gte('created_at', filters.date_from)
     if (filters?.date_to) query = query.lte('created_at', filters.date_to)
 

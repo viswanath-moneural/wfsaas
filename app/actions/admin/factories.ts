@@ -21,6 +21,39 @@ export async function getByOrg(org_id: string): Promise<AdminActionResult<any[]>
   }
 }
 
+export async function getLookups(): Promise<AdminActionResult<any>> {
+  try {
+    const actor = await requireOrgAdmin()
+    const admin = createAdminClient()
+    const { data: organisations, error } = actor.is_superadmin
+      ? await admin.from('organisations').select('*').order('name')
+      : await admin.from('organisations').select('*').eq('id', actor.org_id ?? '').order('name')
+    if (error) throw error
+    return ok({ currentUser: actor, organisations: organisations ?? [] })
+  } catch (error) {
+    return fail(error)
+  }
+}
+
+export async function getAll(org_id?: string): Promise<AdminActionResult<any[]>> {
+  try {
+    const actor = await requireOrgAdmin()
+    const admin = createAdminClient()
+    let query = admin.from('factories').select('*, organisation:organisations(*)').order('created_at', { ascending: false })
+    if (org_id) {
+      assertOrgAccess(actor, org_id)
+      query = query.eq('org_id', org_id)
+    } else if (!actor.is_superadmin) {
+      query = query.eq('org_id', actor.org_id ?? '')
+    }
+    const { data, error } = await query
+    if (error) throw error
+    return ok(data ?? [])
+  } catch (error) {
+    return fail(error)
+  }
+}
+
 export async function getById(id: string): Promise<AdminActionResult<any>> {
   try {
     const actor = await requireOrgAdmin()
@@ -38,6 +71,10 @@ export async function create(payload: Record<string, any>): Promise<AdminActionR
     const actor = await requireOrgAdmin()
     assertOrgAccess(actor, payload.org_id)
     const admin = createAdminClient()
+    if (payload.is_default === true) {
+      const { error: defaultError } = await admin.from('factories').update({ is_default: false, updated_at: nowIso() }).eq('org_id', payload.org_id)
+      if (defaultError) throw defaultError
+    }
     const { data, error } = await admin.from('factories').insert({ ...payload, created_at: nowIso(), updated_at: nowIso() }).select('*').single()
     if (error) throw error
     await logMutation({ actor, org_id: data.org_id, action: 'factory.create', entity_type: 'factory', entity_id: data.id, entity_name: data.name, after: data })
@@ -54,6 +91,10 @@ export async function update(id: string, payload: Record<string, any>): Promise<
     const { data: before, error: beforeError } = await admin.from('factories').select('*').eq('id', id).single()
     if (beforeError) throw beforeError
     assertOrgAccess(actor, before.org_id)
+    if (payload.is_default === true) {
+      const { error: defaultError } = await admin.from('factories').update({ is_default: false, updated_at: nowIso() }).eq('org_id', before.org_id).neq('id', id)
+      if (defaultError) throw defaultError
+    }
     const { data, error } = await admin.from('factories').update({ ...payload, updated_at: nowIso() }).eq('id', id).select('*').single()
     if (error) throw error
     await logMutation({ actor, org_id: data.org_id, action: 'factory.update', entity_type: 'factory', entity_id: id, entity_name: data.name, before, after: data })

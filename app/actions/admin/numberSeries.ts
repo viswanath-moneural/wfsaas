@@ -9,15 +9,40 @@ function assertAccess(actor: any, orgId: string) {
   if (!actor.is_superadmin && orgId !== actor.org_id) throw new Error('Cannot access another organisation.')
 }
 
-export async function getAll(org_id: string, factory_id?: string): Promise<AdminActionResult<any[]>> {
+export async function getAll(org_id?: string, factory_id?: string): Promise<AdminActionResult<any[]>> {
   try {
     const actor = await requireOrgAdmin()
-    assertAccess(actor, org_id)
-    let query = createAdminClient().from('number_series').select('*').eq('org_id', org_id).order('created_at', { ascending: false })
+    const effectiveOrgId = org_id ?? actor.org_id
+    if (!effectiveOrgId) throw new Error('Organisation context is required.')
+    assertAccess(actor, effectiveOrgId)
+    let query = createAdminClient().from('number_series').select('*, factory:factories(*)').eq('org_id', effectiveOrgId).order('module_key').order('document_type')
     if (factory_id) query = query.eq('factory_id', factory_id)
     const { data, error } = await query
     if (error) throw error
     return ok(data ?? [])
+  } catch (error) {
+    return fail(error)
+  }
+}
+
+export async function getLookups(): Promise<AdminActionResult<any>> {
+  try {
+    const actor = await requireOrgAdmin()
+    const admin = createAdminClient()
+    const [
+      { data: organisations, error: orgError },
+      { data: factories, error: factoryError },
+    ] = await Promise.all([
+      actor.is_superadmin
+        ? admin.from('organisations').select('*').order('name')
+        : admin.from('organisations').select('*').eq('id', actor.org_id ?? '').order('name'),
+      actor.is_superadmin
+        ? admin.from('factories').select('*').order('name')
+        : admin.from('factories').select('*').eq('org_id', actor.org_id ?? '').order('name'),
+    ])
+    if (orgError) throw orgError
+    if (factoryError) throw factoryError
+    return ok({ currentUser: actor, organisations: organisations ?? [], factories: factories ?? [] })
   } catch (error) {
     return fail(error)
   }
@@ -98,7 +123,24 @@ export async function getNextNumber(series_id: string): Promise<AdminActionResul
 }
 
 export async function resetSeries(id: string): Promise<AdminActionResult<any>> {
-  return update(id, { current_value: 0, last_reset_at: nowIso() })
+  try {
+    const actor = await requireOrgAdmin()
+    const admin = createAdminClient()
+    const { data: before, error: beforeError } = await admin.from('number_series').select('*').eq('id', id).single()
+    if (beforeError) throw beforeError
+    assertAccess(actor, before.org_id)
+    const { data, error } = await admin
+      .from('number_series')
+      .update({ current_value: before.start_value ?? 1, last_reset_at: nowIso(), updated_at: nowIso() })
+      .eq('id', id)
+      .select('*')
+      .single()
+    if (error) throw error
+    await logMutation({ actor, org_id: data.org_id, action: 'number_series.reset', entity_type: 'number_series', entity_id: id, entity_name: data.document_type, before, after: data })
+    return ok(data)
+  } catch (error) {
+    return fail(error)
+  }
 }
 
 export { deleteNumberSeries as delete }
