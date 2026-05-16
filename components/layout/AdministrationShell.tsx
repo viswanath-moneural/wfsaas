@@ -20,7 +20,7 @@ const sections = [
     label: 'Company Settings',
     items: [
       { label: 'Organisation', href: '/administration/organisation' },
-      { label: 'Factories / Business Units', href: '/administration/factories' },
+      { label: 'Business Units', href: '/administration/business-units' },
     ],
   },
   {
@@ -257,3 +257,11 @@ export default function AdministrationShell({ children, user }: AdministrationSh
     </div>
   )
 }
+
+
+
+
+
+
+
+

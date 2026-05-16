@@ -12,8 +12,15 @@ export default async function AdministrationNumberSeriesPage() {
       {(seriesResult.error || lookupsResult.error) && <div className="error-panel">{seriesResult.error ?? lookupsResult.error}</div>}
       <NumberSeriesAdminClient
         initialSeries={seriesResult.data ?? []}
-        lookups={lookupsResult.data ?? { currentUser: null, organisations: [], factories: [] }}
+        lookups={lookupsResult.data ?? { currentUser: null, organisations: [], businessUnits: [] }}
       />
     </>
   )
 }
+
+
+
+
+
+
+

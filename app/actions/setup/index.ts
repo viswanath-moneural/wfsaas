@@ -13,12 +13,12 @@ export type SetupStateResult =
       role: string | null
       isSuperadmin: boolean
       hasOrg: boolean
-      hasFactory: boolean
+      hasBusinessUnit: boolean
     }
   | { ok: false; message: string; code?: string }
 
 export type BootstrapSetupResult =
-  | { ok: true; orgId: string; factoryId: string }
+  | { ok: true; orgId: string; businessUnitId: string }
   | { ok: false; message: string; code?: string }
 
 async function getSetupCaller() {
@@ -35,7 +35,7 @@ async function getSetupCaller() {
   const admin = getSupabaseAdminClient()
   const { data: appUser, error: appUserError } = await admin
     .from('users')
-    .select('id, email, full_name, role, org_id, tenant_id, is_active')
+    .select('id, email, full_name, role, org_id, business_unit_id, is_active')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -84,31 +84,31 @@ export async function getSetupState(): Promise<SetupStateResult> {
     role: caller.appUser.role ?? null,
     isSuperadmin: caller.isSuperadmin,
     hasOrg: Boolean(caller.appUser.org_id),
-    hasFactory: Boolean(caller.appUser.tenant_id),
+    hasBusinessUnit: Boolean(caller.appUser.business_unit_id),
   }
 }
 
-export async function bootstrapOrganisationAndFactory(input: {
+export async function bootstrapOrganisationAndBusinessUnit(input: {
   organisationName: string
   organisationSlug: string
   country?: string | null
   timezone?: string | null
-  factoryName: string
-  factoryPhone?: string | null
-  factoryAddress?: string | null
+  businessUnitName: string
+  businessUnitPhone?: string | null
+  businessUnitAddress?: string | null
 }): Promise<BootstrapSetupResult> {
   const caller = await getSetupCaller()
   if (!caller.ok) return caller
   if (!caller.isSuperadmin) {
-    return { ok: false, message: 'Contact your administrator to assign an organisation and factory.', code: 'SUPERADMIN_REQUIRED' }
+    return { ok: false, message: 'Contact your administrator to assign an organisation and businessUnit.', code: 'SUPERADMIN_REQUIRED' }
   }
 
   const organisationName = input.organisationName.trim()
   const organisationSlug = normalizeSlug(input.organisationSlug)
-  const factoryName = input.factoryName.trim()
+  const businessUnitName = input.businessUnitName.trim()
 
-  if (!organisationName || !organisationSlug || !factoryName) {
-    return { ok: false, message: 'Organisation name, slug, and factory name are required.', code: 'VALIDATION_ERROR' }
+  if (!organisationName || !organisationSlug || !businessUnitName) {
+    return { ok: false, message: 'Organisation name, slug, and businessUnit name are required.', code: 'VALIDATION_ERROR' }
   }
 
   const admin = getSupabaseAdminClient()
@@ -132,13 +132,13 @@ export async function bootstrapOrganisationAndFactory(input: {
     return { ok: false, message: orgError?.message ?? 'Failed to create organisation.', code: 'ORG_CREATE_FAILED' }
   }
 
-  const { data: factory, error: factoryError } = await admin
-    .from('tenants')
+  const { data: businessUnit, error: businessUnitError } = await admin
+    .from('business_units')
     .insert({
       org_id: org.id,
-      name: factoryName,
-      phone: input.factoryPhone?.trim() || null,
-      address: input.factoryAddress?.trim() || null,
+      name: businessUnitName,
+      phone: input.businessUnitPhone?.trim() || null,
+      address: input.businessUnitAddress?.trim() || null,
       is_active: true,
       created_at: now,
       created_by: caller.user.id,
@@ -146,16 +146,16 @@ export async function bootstrapOrganisationAndFactory(input: {
     .select('id')
     .single()
 
-  if (factoryError || !factory?.id) {
+  if (businessUnitError || !businessUnit?.id) {
     await admin.from('organisations').delete().eq('id', org.id)
-    return { ok: false, message: factoryError?.message ?? 'Failed to create factory.', code: 'FACTORY_CREATE_FAILED' }
+    return { ok: false, message: businessUnitError?.message ?? 'Failed to create businessUnit.', code: 'FACTORY_CREATE_FAILED' }
   }
 
   const { error: updateError } = await admin
     .from('users')
     .update({
       org_id: org.id,
-      tenant_id: factory.id,
+      business_unit_id: businessUnit.id,
       updated_at: now,
       last_modified_at: now,
       last_modified_by: caller.user.id,
@@ -163,10 +163,20 @@ export async function bootstrapOrganisationAndFactory(input: {
     .eq('id', caller.user.id)
 
   if (updateError) {
-    await admin.from('tenants').delete().eq('id', factory.id)
+    await admin.from('business_units').delete().eq('id', businessUnit.id)
     await admin.from('organisations').delete().eq('id', org.id)
     return { ok: false, message: updateError.message, code: 'USER_ASSIGN_FAILED' }
   }
 
-  return { ok: true, orgId: org.id, factoryId: factory.id }
+  return { ok: true, orgId: org.id, businessUnitId: businessUnit.id }
 }
+
+
+
+
+
+
+
+
+
+

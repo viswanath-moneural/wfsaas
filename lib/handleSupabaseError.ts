@@ -13,3 +13,7 @@ export function handleSupabaseError(
   toastError(title, error.message ?? 'The database write failed.')
   return true
 }
+
+
+
+

@@ -5,16 +5,16 @@ import { useRouter } from 'next/navigation'
 import Card from '@/components/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import { bootstrapOrganisationAndFactory, getSetupState } from '@/app/actions/setup'
+import { bootstrapOrganisationAndBusinessUnit, getSetupState } from '@/app/actions/setup'
 
 const EMPTY_FORM = {
   organisationName: 'WFSAAS Platform',
   organisationSlug: 'wfsaas-platform',
   country: 'India',
   timezone: 'Asia/Kolkata',
-  factoryName: '',
-  factoryPhone: '',
-  factoryAddress: '',
+  businessUnitName: '',
+  businessUnitPhone: '',
+  businessUnitAddress: '',
 }
 
 export default function SetupPage() {
@@ -29,7 +29,7 @@ export default function SetupPage() {
     void getSetupState().then((result) => {
       setState(result)
       setLoading(false)
-      if (result.ok && result.hasOrg && result.hasFactory) router.replace('/dashboard')
+      if (result.ok && result.hasOrg && result.hasBusinessUnit) router.replace('/dashboard')
     })
   }, [router])
 
@@ -38,7 +38,7 @@ export default function SetupPage() {
     setSaving(true)
     setError('')
 
-    const result = await bootstrapOrganisationAndFactory(form)
+    const result = await bootstrapOrganisationAndBusinessUnit(form)
     setSaving(false)
 
     if (!result.ok) {
@@ -47,7 +47,7 @@ export default function SetupPage() {
     }
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`active_tenant_${result.orgId}`, result.factoryId)
+      localStorage.setItem(`active_business_unit_${result.orgId}`, result.businessUnitId)
     }
     router.replace('/dashboard')
     router.refresh()
@@ -66,7 +66,7 @@ export default function SetupPage() {
       <main className="setup">
         <Card>
           <h1>Contact your administrator</h1>
-          <p>Your login is not mapped to an organisation or factory yet. Ask your administrator to assign access from Configuration.</p>
+          <p>Your login is not mapped to an organisation or business unit yet. Ask your administrator to assign access from Configuration.</p>
         </Card>
         <SetupStyles />
       </main>
@@ -77,15 +77,15 @@ export default function SetupPage() {
     <main className="setup">
       <Card>
         <h1>Initial setup</h1>
-        <p>Create the first organisation and factory, then this login will be assigned automatically.</p>
+        <p>Create the first organisation and business unit, then this login will be assigned automatically.</p>
         <form onSubmit={handleSubmit}>
           <Input label="Organisation name" value={form.organisationName} onChange={(event) => setForm((prev) => ({ ...prev, organisationName: event.target.value }))} required />
           <Input label="Slug" value={form.organisationSlug} onChange={(event) => setForm((prev) => ({ ...prev, organisationSlug: event.target.value }))} required />
           <Input label="Country" value={form.country} onChange={(event) => setForm((prev) => ({ ...prev, country: event.target.value }))} />
           <Input label="Timezone" value={form.timezone} onChange={(event) => setForm((prev) => ({ ...prev, timezone: event.target.value }))} />
-          <Input label="Factory name" value={form.factoryName} onChange={(event) => setForm((prev) => ({ ...prev, factoryName: event.target.value }))} required />
-          <Input label="Factory phone" value={form.factoryPhone} onChange={(event) => setForm((prev) => ({ ...prev, factoryPhone: event.target.value }))} />
-          <Input label="Factory address" value={form.factoryAddress} onChange={(event) => setForm((prev) => ({ ...prev, factoryAddress: event.target.value }))} />
+          <Input label="Business Unit name" value={form.businessUnitName} onChange={(event) => setForm((prev) => ({ ...prev, businessUnitName: event.target.value }))} required />
+          <Input label="Business Unit phone" value={form.businessUnitPhone} onChange={(event) => setForm((prev) => ({ ...prev, businessUnitPhone: event.target.value }))} />
+          <Input label="Business Unit address" value={form.businessUnitAddress} onChange={(event) => setForm((prev) => ({ ...prev, businessUnitAddress: event.target.value }))} />
           {error && <p className="form-error">{error}</p>}
           <Button type="submit" loading={saving} fullWidth>Complete setup</Button>
         </form>
@@ -134,3 +134,13 @@ function SetupStyles() {
     `}</style>
   )
 }
+
+
+
+
+
+
+
+
+
+

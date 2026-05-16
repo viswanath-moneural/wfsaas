@@ -14,3 +14,8 @@ export default async function AdministrationProfileDetailPage({ params }: { para
 
   return <ProfileDetailClient initialData={result.data} />
 }
+
+
+
+
+

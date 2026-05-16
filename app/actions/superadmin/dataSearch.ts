@@ -36,12 +36,12 @@ export async function globalSearch(filters: GlobalSearchFilters): Promise<Supera
     const pattern = likeTerm(search)
 
     const { data: orgs } = await admin.from('organisations').select('id, name, slug')
-    const { data: tenants } = await admin.from('tenants').select('id, name, org_id')
+    const { data: businessUnits } = await admin.from('business_units').select('id, name, org_id')
     const orgById = new Map((orgs ?? []).map((org: any) => [org.id, org]))
-    const tenantById = new Map((tenants ?? []).map((tenant: any) => [tenant.id, tenant]))
-    const scopedTenantIds = filters.orgId
-      ? (tenants ?? []).filter((tenant: any) => tenant.org_id === filters.orgId).map((tenant: any) => tenant.id)
-      : (tenants ?? []).map((tenant: any) => tenant.id)
+    const businessUnitById = new Map((businessUnits ?? []).map((businessUnit: any) => [businessUnit.id, businessUnit]))
+    const scopedBusinessUnitIds = filters.orgId
+      ? (businessUnits ?? []).filter((businessUnit: any) => businessUnit.org_id === filters.orgId).map((businessUnit: any) => businessUnit.id)
+      : (businessUnits ?? []).map((businessUnit: any) => businessUnit.id)
 
     let organisationsQuery = dateFilter(admin.from('organisations').select('*').limit(25), filters)
     if (search) organisationsQuery = organisationsQuery.or(`name.ilike.${pattern},slug.ilike.${pattern}`)
@@ -53,23 +53,23 @@ export async function globalSearch(filters: GlobalSearchFilters): Promise<Supera
 
     let salesQuery = dateFilter(admin.from('sales_orders').select('*').limit(25), filters)
     if (search) salesQuery = salesQuery.or(`so_code.ilike.${pattern},name.ilike.${pattern},status.ilike.${pattern}`)
-    if (filters.orgId) salesQuery = salesQuery.filter('tenant_id', 'in', inList(scopedTenantIds))
+    if (filters.orgId) salesQuery = salesQuery.filter('business_unit_id', 'in', inList(scopedBusinessUnitIds))
 
     let purchaseQuery = dateFilter(admin.from('purchase_orders').select('*').limit(25), filters)
     if (search) purchaseQuery = purchaseQuery.or(`po_code.ilike.${pattern},name.ilike.${pattern},status.ilike.${pattern}`)
-    if (filters.orgId) purchaseQuery = purchaseQuery.filter('tenant_id', 'in', inList(scopedTenantIds))
+    if (filters.orgId) purchaseQuery = purchaseQuery.filter('business_unit_id', 'in', inList(scopedBusinessUnitIds))
 
-    let productsQuery = dateFilter(admin.from('products').select('id, tenant_id, product_code, product_name, is_active, created_at').limit(25), filters)
+    let productsQuery = dateFilter(admin.from('products').select('id, business_unit_id, product_code, product_name, is_active, created_at').limit(25), filters)
     if (search) productsQuery = productsQuery.or(`product_code.ilike.${pattern},product_name.ilike.${pattern},sku.ilike.${pattern}`)
-    if (filters.orgId) productsQuery = productsQuery.filter('tenant_id', 'in', inList(scopedTenantIds))
+    if (filters.orgId) productsQuery = productsQuery.filter('business_unit_id', 'in', inList(scopedBusinessUnitIds))
 
-    let materialsQuery = dateFilter(admin.from('materials').select('id, tenant_id, material_code, material_name, is_active, created_at').limit(25), filters)
+    let materialsQuery = dateFilter(admin.from('materials').select('id, business_unit_id, material_code, material_name, is_active, created_at').limit(25), filters)
     if (search) materialsQuery = materialsQuery.or(`material_code.ilike.${pattern},material_name.ilike.${pattern}`)
-    if (filters.orgId) materialsQuery = materialsQuery.filter('tenant_id', 'in', inList(scopedTenantIds))
+    if (filters.orgId) materialsQuery = materialsQuery.filter('business_unit_id', 'in', inList(scopedBusinessUnitIds))
 
     let partiesQuery = dateFilter(admin.from('parties').select('*').limit(25), filters)
     if (search) partiesQuery = partiesQuery.or(`party_code.ilike.${pattern},party_name.ilike.${pattern},gst_number.ilike.${pattern}`)
-    if (filters.orgId) partiesQuery = partiesQuery.filter('tenant_id', 'in', inList(scopedTenantIds))
+    if (filters.orgId) partiesQuery = partiesQuery.filter('business_unit_id', 'in', inList(scopedBusinessUnitIds))
 
     const [
       organisations,
@@ -89,9 +89,9 @@ export async function globalSearch(filters: GlobalSearchFilters): Promise<Supera
       partiesQuery,
     ])
 
-    const orgNameForTenant = (tenantId: string | null) => {
-      const tenant = tenantId ? tenantById.get(tenantId) : null
-      return tenant ? orgById.get(tenant.org_id)?.name ?? '-' : '-'
+    const orgNameForBusinessUnit = (businessUnitId: string | null) => {
+      const businessUnit = businessUnitId ? businessUnitById.get(businessUnitId) : null
+      return businessUnit ? orgById.get(businessUnit.org_id)?.name ?? '-' : '-'
     }
 
     const results = {
@@ -123,7 +123,7 @@ export async function globalSearch(filters: GlobalSearchFilters): Promise<Supera
         icon: 'SO',
         name: row.name ?? row.so_code,
         code: row.so_code,
-        orgName: orgNameForTenant(row.tenant_id),
+        orgName: orgNameForBusinessUnit(row.business_unit_id),
         status: row.status,
         createdAt: row.created_at,
         href: `/sales/orders/${row.id}`,
@@ -134,7 +134,7 @@ export async function globalSearch(filters: GlobalSearchFilters): Promise<Supera
         icon: 'PO',
         name: row.name ?? row.po_code,
         code: row.po_code,
-        orgName: orgNameForTenant(row.tenant_id),
+        orgName: orgNameForBusinessUnit(row.business_unit_id),
         status: row.status,
         createdAt: row.created_at,
         href: `/purchases/orders/${row.id}`,
@@ -145,7 +145,7 @@ export async function globalSearch(filters: GlobalSearchFilters): Promise<Supera
         icon: 'Item',
         name: row.product_name,
         code: row.product_code,
-        orgName: orgNameForTenant(row.tenant_id),
+        orgName: orgNameForBusinessUnit(row.business_unit_id),
         status: row.is_active ? 'Active' : 'Inactive',
         createdAt: row.created_at,
         href: `/configuration/products`,
@@ -155,7 +155,7 @@ export async function globalSearch(filters: GlobalSearchFilters): Promise<Supera
         icon: 'Mat',
         name: row.material_name,
         code: row.material_code,
-        orgName: orgNameForTenant(row.tenant_id),
+        orgName: orgNameForBusinessUnit(row.business_unit_id),
         status: row.is_active ? 'Active' : 'Inactive',
         createdAt: row.created_at,
         href: `/configuration/materials`,
@@ -166,7 +166,7 @@ export async function globalSearch(filters: GlobalSearchFilters): Promise<Supera
         icon: 'CRM',
         name: row.party_name,
         code: row.party_code,
-        orgName: orgNameForTenant(row.tenant_id),
+        orgName: orgNameForBusinessUnit(row.business_unit_id),
         status: row.is_active ? 'Active' : 'Inactive',
         createdAt: row.created_at,
         href: `/crm/parties`,
@@ -181,3 +181,14 @@ export async function globalSearch(filters: GlobalSearchFilters): Promise<Supera
     return fail(error)
   }
 }
+
+
+
+
+
+
+
+
+
+
+

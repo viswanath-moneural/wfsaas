@@ -13,7 +13,7 @@ const SECTIONS = [
 export default function InventoryPage() {
   return (
     <>
-      <PageHeader title="Inventory" description="Track stock position and transactions for the active factory." />
+      <PageHeader title="Inventory" description="Track stock position and transactions for the active businessUnit." />
       <section className="grid">
         {SECTIONS.map((section) => (
           <Link href={section.href} key={section.href}>
@@ -34,3 +34,10 @@ export default function InventoryPage() {
     </>
   )
 }
+
+
+
+
+
+
+

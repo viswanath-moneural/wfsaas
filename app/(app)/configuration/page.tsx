@@ -11,9 +11,9 @@ const CONFIG_SECTIONS = [
     href: '/configuration/organisation',
   },
   {
-    title: 'Factories',
-    description: 'Manage branches, plants, and tenant-level operating units.',
-    href: '/configuration/tenants',
+    title: 'Business Units',
+    description: 'Manage branches, plants, and business-unit-level operating units.',
+    href: '/configuration/business-units',
   },
   {
     title: 'Products',
@@ -42,7 +42,7 @@ const CONFIG_SECTIONS = [
   },
   {
     title: 'Users',
-    description: 'Create users and map factory + role assignments.',
+    description: 'Create users and map business unit + role assignments.',
     href: '/configuration/users',
   },
   {
@@ -67,7 +67,7 @@ export default function ConfigurationPage() {
     <>
       <PageHeader
         title="Configuration"
-        description="Set up the organisation, factories, permissions, and core masters before transactions."
+        description="Set up the organisation, business units, permissions, and core masters before transactions."
       />
 
       <section className="config-grid">
@@ -126,3 +126,14 @@ export default function ConfigurationPage() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+
+
+

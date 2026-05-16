@@ -1,12 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import Button from '@/components/ui/Button'
 import { useAuth } from '@/lib/AuthContext'
-import Link from 'next/link'
 
 export default function TopBar() {
-  const { user, org, tenant, allTenants, switchTenant, signOut, isLoading, permissions } = useAuth()
-  const showFactoryCta = !tenant && (permissions?.is_admin ?? false)
+  const { user, org, businessUnit, businessUnits, switchBusinessUnit, signOut, isLoading, permissions } = useAuth()
+  const showBusinessUnitCta = !businessUnit && (permissions?.is_admin ?? false)
 
   async function handleSignOut() {
     await signOut()
@@ -17,27 +17,27 @@ export default function TopBar() {
     <header className="topbar">
       <div className="topbar__context">
         <span>{isLoading ? 'Loading workspace' : org?.name ?? 'Workspace'}</span>
-        <strong>{tenant?.name ?? 'No active factory'}</strong>
+        <strong>{businessUnit?.name ?? 'No active business unit'}</strong>
       </div>
 
       <div className="topbar__actions">
-        {allTenants.length >= 1 && (
+        {businessUnits.length >= 1 && (
           <select
-            value={tenant?.id ?? ''}
-            onChange={(event) => switchTenant(event.target.value)}
-            aria-label="Switch factory"
+            value={businessUnit?.id ?? ''}
+            onChange={(event) => switchBusinessUnit(event.target.value)}
+            aria-label="Switch business unit"
           >
-            {!tenant && <option value="" disabled>Select factory</option>}
-            {allTenants.map((tenantItem) => (
-              <option key={tenantItem.id} value={tenantItem.id}>
-                {tenantItem.name}
+            {!businessUnit && <option value="" disabled>Select business unit</option>}
+            {businessUnits.map((businessUnitItem) => (
+              <option key={businessUnitItem.id} value={businessUnitItem.id}>
+                {businessUnitItem.name}
               </option>
             ))}
           </select>
         )}
-        {showFactoryCta && allTenants.length === 0 && (
-          <Link href="/configuration/tenants">
-            <Button size="sm">Create first factory</Button>
+        {showBusinessUnitCta && businessUnits.length === 0 && (
+          <Link href="/configuration/business-units">
+            <Button size="sm">Create first business unit</Button>
           </Link>
         )}
         <span className="topbar__user">{user?.full_name ?? user?.email ?? ''}</span>
@@ -114,3 +114,9 @@ export default function TopBar() {
     </header>
   )
 }
+
+
+
+
+
+

@@ -27,12 +27,12 @@ export default function UserDetailClient({ initialData }: { initialData: any }) 
     email: data.user.email ?? '',
     phone: data.user.phone ?? '',
     org_id: data.user.org_id ?? '',
-    tenant_id: data.user.tenant_id ?? '',
+    business_unit_id: data.user.business_unit_id ?? '',
     is_active: data.user.is_active !== false,
   })
   const [roleId, setRoleId] = useState('')
 
-  const orgFactories = (data.lookups.factories ?? []).filter((factory: any) => factory.org_id === profile.org_id)
+  const orgBusinessUnits = (data.lookups.businessUnits ?? []).filter((businessUnit: any) => businessUnit.org_id === profile.org_id)
   const orgRoles = (data.lookups.roles ?? []).filter((role: any) => role.org_id === profile.org_id)
   const assignedRoleIds = useMemo(() => new Set((data.roles ?? []).map((roleRow: any) => roleRow.role_id)), [data.roles])
 
@@ -154,12 +154,12 @@ export default function UserDetailClient({ initialData }: { initialData: any }) 
             <Input label="Name" value={profile.full_name} onChange={(event) => setProfile({ ...profile, full_name: event.target.value })} />
             <Input label="Email" value={profile.email} onChange={(event) => setProfile({ ...profile, email: event.target.value })} />
             <Input label="Phone" value={profile.phone} onChange={(event) => setProfile({ ...profile, phone: event.target.value })} />
-            <label>Organisation<select value={profile.org_id} onChange={(event) => setProfile({ ...profile, org_id: event.target.value, tenant_id: '' })}>
+            <label>Organisation<select value={profile.org_id} onChange={(event) => setProfile({ ...profile, org_id: event.target.value, business_unit_id: '' })}>
               {(data.lookups.organisations ?? []).map((org: any) => <option key={org.id} value={org.id}>{org.name}</option>)}
             </select></label>
-            <label>Factory<select value={profile.tenant_id ?? ''} onChange={(event) => setProfile({ ...profile, tenant_id: event.target.value })}>
-              <option value="">No factory</option>
-              {orgFactories.map((factory: any) => <option key={factory.id} value={factory.id}>{factory.name}</option>)}
+            <label>Business Unit<select value={profile.business_unit_id ?? ''} onChange={(event) => setProfile({ ...profile, business_unit_id: event.target.value })}>
+              <option value="">No businessUnit</option>
+              {orgBusinessUnits.map((businessUnit: any) => <option key={businessUnit.id} value={businessUnit.id}>{businessUnit.name}</option>)}
             </select></label>
             <Input label="Last Login" disabled value={data.user.last_login ? new Date(data.user.last_login).toLocaleString('en-IN') : '-'} />
           </div>
@@ -228,3 +228,13 @@ export default function UserDetailClient({ initialData }: { initialData: any }) 
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+

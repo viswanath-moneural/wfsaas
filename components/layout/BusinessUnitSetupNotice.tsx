@@ -4,20 +4,20 @@ import Link from 'next/link'
 import PageHeader from '@/components/layout/PageHeader'
 import Button from '@/components/ui/Button'
 
-interface TenantSetupNoticeProps {
+interface BusinessUnitSetupNoticeProps {
   title: string
   description: string
 }
 
-export default function TenantSetupNotice({ title, description }: TenantSetupNoticeProps) {
+export default function BusinessUnitSetupNotice({ title, description }: BusinessUnitSetupNoticeProps) {
   return (
     <>
       <PageHeader title={title} description={description} />
       <div className="notice">
-        <p>Select a factory to continue tenant-level setup, or create one first.</p>
+        <p>Select a business unit to continue, or create one first.</p>
         <div className="actions">
-          <Link href="/configuration/tenants"><Button>Go to Factories</Button></Link>
-          <Link href="/dashboard"><Button variant="outline">Select Factory</Button></Link>
+          <Link href="/configuration/business-units"><Button>Go to Business Units</Button></Link>
+          <Link href="/dashboard"><Button variant="outline">Select BusinessUnit</Button></Link>
         </div>
       </div>
       <style jsx>{`
@@ -37,3 +37,7 @@ export default function TenantSetupNotice({ title, description }: TenantSetupNot
     </>
   )
 }
+
+
+
+

@@ -10,9 +10,9 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
-import { createFactory } from '@/app/actions/platform'
+import { createBusinessUnit } from '@/app/actions/platform'
 
-interface TenantRow {
+interface BusinessUnitRow {
   id: string
   name: string
   phone: string | null
@@ -27,9 +27,9 @@ const EMPTY_FORM = {
   address: '',
 }
 
-export default function TenantsPage() {
+export default function BusinessUnitsPage() {
   const { org, user, refreshAuth } = useAuth()
-  const [rows, setRows] = useState<TenantRow[]>([])
+  const [rows, setRows] = useState<BusinessUnitRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -40,20 +40,20 @@ export default function TenantsPage() {
 
   useEffect(() => {
     if (!org?.id) return
-    fetchTenants(org.id)
+    fetchBusinessUnits(org.id)
   }, [org?.id])
 
-  async function fetchTenants(orgId: string) {
+  async function fetchBusinessUnits(orgId: string) {
     setLoading(true)
     const supabase = getSupabaseClient()
     const { data, error: fetchError } = await supabase
-      .from('tenants')
+      .from('business_units')
       .select('id, name, phone, address, is_active, created_at')
       .eq('org_id', orgId)
       .order('created_at', { ascending: false })
 
     if (fetchError) setError(fetchError.message)
-    setRows((data as TenantRow[]) ?? [])
+    setRows((data as BusinessUnitRow[]) ?? [])
     setLoading(false)
   }
 
@@ -87,7 +87,7 @@ export default function TenantsPage() {
     setSaving(true)
     setError('')
 
-    const result = await createFactory({
+    const result = await createBusinessUnit({
       org_id: targetOrgId,
       name: form.name.trim(),
       phone: form.phone.trim() || null,
@@ -102,12 +102,12 @@ export default function TenantsPage() {
     }
 
     setForm(EMPTY_FORM)
-    await fetchTenants(targetOrgId)
+    await fetchBusinessUnits(targetOrgId)
     await refreshAuth()
   }
 
-  const columns: Column<TenantRow>[] = useMemo(() => [
-    { key: 'name', header: 'Factory' },
+  const columns: Column<BusinessUnitRow>[] = useMemo(() => [
+    { key: 'name', header: 'BusinessUnit' },
     { key: 'phone', header: 'Phone', render: (value) => value || '-' },
     { key: 'address', header: 'Address', render: (value) => value || '-' },
     {
@@ -124,16 +124,16 @@ export default function TenantsPage() {
   return (
     <>
       <PageHeader
-        title="Factories"
-        description="Factories are tenants. Transactional data is isolated at this level."
+        title="Business Units"
+        description="Business units are operating units. Transactional data is isolated at this level."
       />
 
       <section className="master-layout">
         <Card>
-          <h2>Add Factory</h2>
+          <h2>Add Business Unit</h2>
           <form onSubmit={handleSubmit}>
             <Input
-              label="Factory name"
+              label="Business Unit name"
               value={form.name}
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
               placeholder="Acme - Hyderabad Plant"
@@ -151,14 +151,14 @@ export default function TenantsPage() {
               label="Address"
               value={form.address}
               onChange={(event) => setForm((prev) => ({ ...prev, address: event.target.value }))}
-              placeholder="Factory address"
+              placeholder="Business Unit address"
               disabled={!canEdit}
             />
             {error && <p className="form-error">{error}</p>}
-            {!canEdit && <p className="form-hint">You do not have permission to create factories.</p>}
+            {!canEdit && <p className="form-hint">You do not have permission to create business units.</p>}
             {!org?.id && role !== 'superadmin' && <p className="form-hint">Organisation context missing for current user.</p>}
             <Button title={!canEdit ? 'You do not have permission to edit configuration.' : undefined} type="submit" loading={saving} disabled={!canEdit} fullWidth>
-              Add factory
+              Add business unit
             </Button>
           </form>
         </Card>
@@ -168,10 +168,10 @@ export default function TenantsPage() {
             columns={columns}
             data={rows}
             loading={loading}
-            emptyTitle="No factories found"
-            emptyMessage="Add the first factory to start entering tenant-level transactions."
+            emptyTitle="No business units found"
+            emptyMessage="Add the first business unit to start entering business-unit-level transactions."
             searchable
-            searchPlaceholder="Search factories..."
+            searchPlaceholder="Search business units..."
           />
         </div>
       </section>
@@ -215,3 +215,16 @@ export default function TenantsPage() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

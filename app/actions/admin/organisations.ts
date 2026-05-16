@@ -39,10 +39,10 @@ export async function create(payload: {
   timezone?: string | null
   currency?: string | null
   fiscal_year_start?: number | null
-  factory?: { name?: string; code?: string; address?: string | null; city?: string | null; state?: string | null; country?: string | null; pincode?: string | null; gstin?: string | null; pan?: string | null }
+  businessUnit?: { name?: string; code?: string; address?: string | null; city?: string | null; state?: string | null; country?: string | null; pincode?: string | null; gstin?: string | null; pan?: string | null }
   owner: { email: string; password?: string; first_name: string; last_name?: string | null; phone?: string | null }
 }): Promise<AdminActionResult<any>> {
-  const created: { orgId?: string; factoryId?: string; authUserId?: string } = {}
+  const created: { orgId?: string; businessUnitId?: string; authUserId?: string } = {}
   try {
     const actor = await requireSuperadmin()
     const admin = createAdminClient()
@@ -64,24 +64,24 @@ export async function create(payload: {
     if (orgError) throw orgError
     created.orgId = org.id
 
-    const { data: factory, error: factoryError } = await admin.from('factories').insert({
+    const { data: businessUnit, error: businessUnitError } = await admin.from('business_units').insert({
       org_id: org.id,
-      name: payload.factory?.name?.trim() || `${payload.name.trim()} Default Factory`,
-      code: payload.factory?.code?.trim() || 'DEFAULT',
-      address: payload.factory?.address ?? null,
-      city: payload.factory?.city ?? null,
-      state: payload.factory?.state ?? null,
-      country: payload.factory?.country ?? payload.country ?? null,
-      pincode: payload.factory?.pincode ?? null,
-      gstin: payload.factory?.gstin ?? null,
-      pan: payload.factory?.pan ?? null,
+      name: payload.businessUnit?.name?.trim() || `${payload.name.trim()} Default BusinessUnit`,
+      code: payload.businessUnit?.code?.trim() || 'DEFAULT',
+      address: payload.businessUnit?.address ?? null,
+      city: payload.businessUnit?.city ?? null,
+      state: payload.businessUnit?.state ?? null,
+      country: payload.businessUnit?.country ?? payload.country ?? null,
+      pincode: payload.businessUnit?.pincode ?? null,
+      gstin: payload.businessUnit?.gstin ?? null,
+      pan: payload.businessUnit?.pan ?? null,
       is_active: true,
       is_default: true,
       created_at: timestamp,
       updated_at: timestamp,
     }).select('*').single()
-    if (factoryError) throw factoryError
-    created.factoryId = factory.id
+    if (businessUnitError) throw businessUnitError
+    created.businessUnitId = businessUnit.id
 
     const [{ data: ownerRole }, { data: adminProfile }] = await Promise.all([
       admin.from('roles').select('id').eq('name', 'owner').is('org_id', null).single(),
@@ -100,7 +100,7 @@ export async function create(payload: {
     const { data: ownerUser, error: userError } = await admin.from('users').insert({
       id: authUser.user.id,
       org_id: org.id,
-      factory_id: factory.id,
+      business_unit_id: businessUnit.id,
       role_id: ownerRole?.id,
       profile_id: adminProfile?.id,
       first_name: payload.owner.first_name.trim(),
@@ -114,9 +114,9 @@ export async function create(payload: {
     }).select('*').single()
     if (userError) throw userError
 
-    const { error: accessError } = await admin.from('user_factory_access').insert({
+    const { error: accessError } = await admin.from('user_business_unit_access').insert({
       user_id: ownerUser.id,
-      factory_id: factory.id,
+      business_unit_id: businessUnit.id,
       is_default: true,
       created_at: timestamp,
     })
@@ -133,8 +133,8 @@ export async function create(payload: {
       if (moduleError) throw moduleError
     }
 
-    await logMutation({ actor, org_id: org.id, action: 'organisation.create', entity_type: 'organisation', entity_id: org.id, entity_name: org.name, after: { org, factory, ownerUser } })
-    return ok({ organisation: org, factory, ownerUser, temporaryPassword: password })
+    await logMutation({ actor, org_id: org.id, action: 'organisation.create', entity_type: 'organisation', entity_id: org.id, entity_name: org.name, after: { org, businessUnit, ownerUser } })
+    return ok({ organisation: org, businessUnit, ownerUser, temporaryPassword: password })
   } catch (error) {
     const admin = createAdminClient()
     if (created.authUserId) await admin.auth.admin.deleteUser(created.authUserId)
@@ -172,3 +172,13 @@ export async function deleteOrganisation(id: string): Promise<AdminActionResult<
 }
 
 export { deleteOrganisation as delete }
+
+
+
+
+
+
+
+
+
+

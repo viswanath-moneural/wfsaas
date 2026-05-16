@@ -24,3 +24,8 @@ export default async function AdministrationLayout({ children }: { children: Rea
     </AdministrationShell>
   )
 }
+
+
+
+
+

@@ -607,7 +607,7 @@ textarea {
 .admin-permission-sets-page,
 .admin-permission-set-detail,
 .admin-organisation-page,
-.admin-factories-page,
+.admin-businessUnits-page,
 .admin-number-series-page {
   display: flex;
   flex-direction: column;
@@ -1502,3 +1502,7 @@ textarea {
     justify-content: flex-start;
   }
 }
+
+
+
+

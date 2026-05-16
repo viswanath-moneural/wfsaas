@@ -17,7 +17,7 @@ function getSupabaseAdmin() {
 // Session store
 interface Session {
   step: string
-  tenant_id?: string
+  business_unit_id?: string
   operator_id?: string
   operator_name?: string
   machines?: { id: string; machine_code: string; machine_name: string }[]
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
     // Save message
     await supabaseAdmin.from('messages').insert({
-      phone, content: text, parsed_type: 'UNKNOWN', tenant_id: null
+      phone, content: text, parsed_type: 'UNKNOWN', business_unit_id: null
     })
 
     // ── Greeting / reset ──────────────────────────────────────────────────
@@ -78,13 +78,13 @@ export async function POST(req: Request) {
         // Look up operator
         const { data: operator } = await supabaseAdmin
           .from('operators')
-          .select('id, tenant_id, operator_name')
+          .select('id, business_unit_id, operator_name')
           .eq('phone', phone)
           .eq('status', 'Active')
           .single()
 
         if (!operator) {
-          await sendWhatsAppReply(phone, `⚠️ Your number is not registered.\nContact your factory manager.`)
+          await sendWhatsAppReply(phone, `⚠️ Your number is not registered.\nContact your businessUnit manager.`)
           return new Response('ok', { status: 200 })
         }
 
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
         const { data: machines } = await supabaseAdmin
           .from('machines')
           .select('id, machine_code, machine_name')
-          .eq('tenant_id', operator.tenant_id)
+          .eq('business_unit_id', operator.business_unit_id)
           .eq('status', 'Active')
           .order('machine_code')
 
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
 
         sessions[phone] = {
           step: 'select_machine',
-          tenant_id: operator.tenant_id,
+          business_unit_id: operator.business_unit_id,
           operator_id: operator.id,
           operator_name: operator.operator_name,
           machines,
@@ -138,7 +138,7 @@ export async function POST(req: Request) {
       const { data: products } = await supabaseAdmin
         .from('products')
         .select('id, product_code, product_name')
-        .eq('tenant_id', session.tenant_id)
+        .eq('business_unit_id', session.business_unit_id)
         .eq('is_active', true)
         .order('product_code')
 
@@ -215,7 +215,7 @@ export async function POST(req: Request) {
 
       // Save production run
       const { error } = await supabaseAdmin.from('production_runs').insert({
-        tenant_id:   session.tenant_id,
+        business_unit_id:   session.business_unit_id,
         run_date:    new Date().toISOString().split('T')[0],
         product_id:  session.selected_product!.id,
         machine_id:  session.selected_machine!.id,
@@ -296,3 +296,10 @@ export async function POST(req: Request) {
     return new Response('ok', { status: 200 })
   }
 }
+
+
+
+
+
+
+

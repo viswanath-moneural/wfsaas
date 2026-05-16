@@ -10,7 +10,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { createProduct } from '@/app/actions/platform'
 
 interface ProductRow {
@@ -32,7 +32,7 @@ const EMPTY_FORM = {
 }
 
 export default function ProductsPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const [rows, setRows] = useState<ProductRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
@@ -42,20 +42,20 @@ export default function ProductsPage() {
   const { canCreate: canEdit } = usePermissions('configuration')
 
   useEffect(() => {
-    if (!tenant?.id) {
+    if (!businessUnit?.id) {
       setLoading(false)
       return
     }
-    fetchProducts(tenant.id)
-  }, [tenant?.id])
+    fetchProducts(businessUnit.id)
+  }, [businessUnit?.id])
 
-  async function fetchProducts(tenantId: string) {
+  async function fetchProducts(businessUnitId: string) {
     setLoading(true)
     const supabase = getSupabaseClient()
     const { data, error: fetchError } = await supabase
       .from('products')
       .select('id, product_code, product_name, category, sku, reorder_level, is_active')
-      .eq('tenant_id', tenantId)
+      .eq('business_unit_id', businessUnitId)
       .order('product_code', { ascending: true })
 
     if (fetchError) setError(fetchError.message)
@@ -65,13 +65,13 @@ export default function ProductsPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!tenant?.id) return
+    if (!businessUnit?.id) return
 
     setSaving(true)
     setError('')
 
     const result = await createProduct({
-      tenant_id: tenant.id,
+      business_unit_id: businessUnit.id,
       product_code: form.product_code.trim(),
       product_name: form.product_name.trim(),
       category: form.category,
@@ -87,7 +87,7 @@ export default function ProductsPage() {
     }
 
     setForm(EMPTY_FORM)
-    await fetchProducts(tenant.id)
+    await fetchProducts(businessUnit.id)
   }
 
   const columns: Column<ProductRow>[] = useMemo(() => [
@@ -107,15 +107,15 @@ export default function ProductsPage() {
     },
   ], [])
 
-  if (!tenant) {
-    return <TenantSetupNotice title="Products" description="Select or create a factory before creating tenant-level product masters." />
+  if (!businessUnit) {
+    return <BusinessUnitSetupNotice title="Products" description="Select or create a businessUnit before creating business-unit-level product masters." />
   }
 
   return (
     <>
       <PageHeader
         title="Products"
-        description={`Finished goods for ${tenant.name}. These feed sales, inventory, and production.`}
+        description={`Finished goods for ${businessUnit.name}. These feed sales, inventory, and production.`}
       />
 
       <section className="master-layout">
@@ -242,3 +242,12 @@ export default function ProductsPage() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+

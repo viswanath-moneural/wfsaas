@@ -123,3 +123,6 @@ export function hasFieldAccess(
 export function canAccessModule(permissions: UserPermissions, moduleKey: string): boolean {
   return hasModuleAccess(permissions, moduleKey, 'read')
 }
+
+
+

@@ -9,7 +9,7 @@ export interface CreateUserInput {
   email: string
   temporaryPassword: string
   org_id: string
-  factory_id?: string | null
+  business_unit_id?: string | null
   role_id: string
 }
 
@@ -44,7 +44,7 @@ export async function createUser(input: CreateUserInput): Promise<CreateUserResu
 
   const email = cleanEmail(input.email)
   const name = input.name.trim()
-  const factoryId = input.factory_id || null
+  const businessUnitId = input.business_unit_id || null
 
   let authUserId: string | null = null
 
@@ -106,16 +106,16 @@ export async function createUser(input: CreateUserInput): Promise<CreateUserResu
       return { ok: false, message: 'Selected organisation was not found.', code: 'ORG_NOT_FOUND' }
     }
 
-    if (factoryId) {
-      const { data: tenant, error: tenantError } = await supabaseAdmin
-        .from('tenants')
+    if (businessUnitId) {
+      const { data: businessUnit, error: businessUnitError } = await supabaseAdmin
+        .from('business_units')
         .select('id')
-        .eq('id', factoryId)
+        .eq('id', businessUnitId)
         .eq('org_id', input.org_id)
         .maybeSingle()
 
-      if (tenantError || !tenant) {
-        return { ok: false, message: 'Selected factory does not belong to this organisation.', code: 'TENANT_NOT_FOUND' }
+      if (businessUnitError || !businessUnit) {
+        return { ok: false, message: 'Selected businessUnit does not belong to this organisation.', code: 'TENANT_NOT_FOUND' }
       }
     }
 
@@ -152,7 +152,7 @@ export async function createUser(input: CreateUserInput): Promise<CreateUserResu
     const { error: appUserInsertError } = await supabaseAdmin.from('users').insert({
       id: authUserId,
       org_id: input.org_id,
-      tenant_id: factoryId,
+      business_unit_id: businessUnitId,
       full_name: name,
       email,
       phone: '0000000000',
@@ -203,3 +203,12 @@ export async function createUser(input: CreateUserInput): Promise<CreateUserResu
     }
   }
 }
+
+
+
+
+
+
+
+
+

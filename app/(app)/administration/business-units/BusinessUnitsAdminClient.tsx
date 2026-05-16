@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import { adminFactories } from '@/app/actions/admin'
+import { adminBusinessUnits } from '@/app/actions/admin'
 
 function emptyForm(orgId: string) {
   return {
@@ -24,49 +24,49 @@ function emptyForm(orgId: string) {
   }
 }
 
-export default function FactoriesAdminClient({ initialFactories, lookups }: { initialFactories: any[]; lookups: any }) {
-  const [factories, setFactories] = useState(initialFactories)
+export default function BusinessUnitsAdminClient({ initialBusinessUnits, lookups }: { initialBusinessUnits: any[]; lookups: any }) {
+  const [businessUnits, setBusinessUnits] = useState(initialBusinessUnits)
   const [selectedOrgId, setSelectedOrgId] = useState(lookups.currentUser?.is_superadmin ? lookups.organisations?.[0]?.id ?? '' : lookups.currentUser?.org_id ?? '')
   const [panelOpen, setPanelOpen] = useState(false)
-  const [editingFactory, setEditingFactory] = useState<any | null>(null)
+  const [editingBusinessUnit, setEditingBusinessUnit] = useState<any | null>(null)
   const [form, setForm] = useState(emptyForm(selectedOrgId))
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isPending, startTransition] = useTransition()
   const isSuperadmin = lookups.currentUser?.is_superadmin === true
-  const visibleFactories = useMemo(() => factories.filter((factory) => !selectedOrgId || factory.org_id === selectedOrgId), [factories, selectedOrgId])
+  const visibleBusinessUnits = useMemo(() => businessUnits.filter((businessUnit) => !selectedOrgId || businessUnit.org_id === selectedOrgId), [businessUnits, selectedOrgId])
 
   function refresh() {
     startTransition(async () => {
-      const result = await adminFactories.getAll(isSuperadmin ? undefined : lookups.currentUser?.org_id)
-      if (result.data) setFactories(result.data)
+      const result = await adminBusinessUnits.getAll(isSuperadmin ? undefined : lookups.currentUser?.org_id)
+      if (result.data) setBusinessUnits(result.data)
       if (result.error) setError(result.error)
     })
   }
 
   function openCreate() {
-    setEditingFactory(null)
+    setEditingBusinessUnit(null)
     setForm(emptyForm(selectedOrgId))
     setPanelOpen(true)
     setError('')
   }
 
-  function openEdit(factory: any) {
-    setEditingFactory(factory)
+  function openEdit(businessUnit: any) {
+    setEditingBusinessUnit(businessUnit)
     setForm({
-      id: factory.id,
-      org_id: factory.org_id,
-      name: factory.name ?? '',
-      code: factory.code ?? '',
-      address: factory.address ?? '',
-      city: factory.city ?? '',
-      state: factory.state ?? '',
-      country: factory.country ?? '',
-      pincode: factory.pincode ?? '',
-      gstin: factory.gstin ?? '',
-      pan: factory.pan ?? '',
-      is_active: factory.is_active !== false,
-      is_default: factory.is_default === true,
+      id: businessUnit.id,
+      org_id: businessUnit.org_id,
+      name: businessUnit.name ?? '',
+      code: businessUnit.code ?? '',
+      address: businessUnit.address ?? '',
+      city: businessUnit.city ?? '',
+      state: businessUnit.state ?? '',
+      country: businessUnit.country ?? '',
+      pincode: businessUnit.pincode ?? '',
+      gstin: businessUnit.gstin ?? '',
+      pan: businessUnit.pan ?? '',
+      is_active: businessUnit.is_active !== false,
+      is_default: businessUnit.is_default === true,
     })
     setPanelOpen(true)
     setError('')
@@ -74,7 +74,7 @@ export default function FactoriesAdminClient({ initialFactories, lookups }: { in
 
   function selectOrg(orgId: string) {
     setSelectedOrgId(orgId)
-    if (!editingFactory) setForm(emptyForm(orgId))
+    if (!editingBusinessUnit) setForm(emptyForm(orgId))
   }
 
   function submit() {
@@ -82,7 +82,7 @@ export default function FactoriesAdminClient({ initialFactories, lookups }: { in
     setSuccess('')
     startTransition(async () => {
       if (!form.name.trim() || !form.code.trim()) {
-        setError('Factory name and code are required.')
+        setError('Business Unit name and code are required.')
         return
       }
       const payload = {
@@ -99,47 +99,47 @@ export default function FactoriesAdminClient({ initialFactories, lookups }: { in
         is_active: form.is_active,
         is_default: form.is_default,
       }
-      const result = editingFactory
-        ? await adminFactories.update(editingFactory.id, payload)
-        : await adminFactories.create(payload)
+      const result = editingBusinessUnit
+        ? await adminBusinessUnits.update(editingBusinessUnit.id, payload)
+        : await adminBusinessUnits.create(payload)
       if (result.error || !result.data) {
-        setError(result.error ?? 'Factory save failed.')
+        setError(result.error ?? 'BusinessUnit save failed.')
         return
       }
       setPanelOpen(false)
-      setSuccess(editingFactory ? 'Factory updated.' : 'Factory created.')
+      setSuccess(editingBusinessUnit ? 'BusinessUnit updated.' : 'BusinessUnit created.')
       refresh()
     })
   }
 
-  function setDefault(factory: any) {
+  function setDefault(businessUnit: any) {
     startTransition(async () => {
-      const result = await adminFactories.setDefault(factory.id)
+      const result = await adminBusinessUnits.setDefault(businessUnit.id)
       if (result.error) setError(result.error)
       else {
-        setSuccess('Default factory updated.')
+        setSuccess('Default business unit updated.')
         refresh()
       }
     })
   }
 
-  function deleteFactory(factory: any) {
-    if (!window.confirm(`Delete factory ${factory.name}?`)) return
+  function deleteBusinessUnit(businessUnit: any) {
+    if (!window.confirm(`Delete business unit ${businessUnit.name}?`)) return
     startTransition(async () => {
-      const result = await adminFactories.delete(factory.id)
+      const result = await adminBusinessUnits.delete(businessUnit.id)
       if (result.error) setError(result.error)
       else refresh()
     })
   }
 
   return (
-    <div className="admin-factories-page">
+    <div className="admin-business-units-page">
       <div className="admin-page-header">
         <div>
-          <h1>Factories / Business Units</h1>
+          <h1>Business Units</h1>
           <p>Manage branches, plants, GST identity, and default business-unit context.</p>
         </div>
-        <Button onClick={openCreate} disabled={!selectedOrgId}>New Factory</Button>
+        <Button onClick={openCreate} disabled={!selectedOrgId}>New Business Unit</Button>
       </div>
 
       {isSuperadmin && (
@@ -155,29 +155,29 @@ export default function FactoriesAdminClient({ initialFactories, lookups }: { in
         <table>
           <thead><tr><th>Code</th><th>Name</th><th>City</th><th>GSTIN</th><th>Default</th><th>Active</th><th>Actions</th></tr></thead>
           <tbody>
-            {visibleFactories.map((factory) => (
-              <tr key={factory.id}>
-                <td><strong>{factory.code}</strong></td>
-                <td>{factory.name}</td>
-                <td>{factory.city ?? '-'}</td>
-                <td>{factory.gstin ?? '-'}</td>
-                <td>{factory.is_default ? <Badge variant="success">Default</Badge> : <Button size="xs" variant="outline" onClick={() => setDefault(factory)}>Set Default</Button>}</td>
-                <td><Badge variant={factory.is_active === false ? 'danger' : 'success'}>{factory.is_active === false ? 'Inactive' : 'Active'}</Badge></td>
-                <td><div className="row-actions"><Button size="xs" variant="outline" onClick={() => openEdit(factory)}>Edit</Button><Button size="xs" variant="danger" onClick={() => deleteFactory(factory)}>Delete</Button></div></td>
+            {visibleBusinessUnits.map((businessUnit) => (
+              <tr key={businessUnit.id}>
+                <td><strong>{businessUnit.code}</strong></td>
+                <td>{businessUnit.name}</td>
+                <td>{businessUnit.city ?? '-'}</td>
+                <td>{businessUnit.gstin ?? '-'}</td>
+                <td>{businessUnit.is_default ? <Badge variant="success">Default</Badge> : <Button size="xs" variant="outline" onClick={() => setDefault(businessUnit)}>Set Default</Button>}</td>
+                <td><Badge variant={businessUnit.is_active === false ? 'danger' : 'success'}>{businessUnit.is_active === false ? 'Inactive' : 'Active'}</Badge></td>
+                <td><div className="row-actions"><Button size="xs" variant="outline" onClick={() => openEdit(businessUnit)}>Edit</Button><Button size="xs" variant="danger" onClick={() => deleteBusinessUnit(businessUnit)}>Delete</Button></div></td>
               </tr>
             ))}
-            {!visibleFactories.length && <tr><td colSpan={7}>No factories found for this organisation.</td></tr>}
+            {!visibleBusinessUnits.length && <tr><td colSpan={7}>No business units found for this organisation.</td></tr>}
           </tbody>
         </table>
       </div>
 
       {panelOpen && (
-        <div className="slide-over" role="dialog" aria-modal="true" aria-label={editingFactory ? 'Edit factory' : 'Create factory'}>
+        <div className="slide-over" role="dialog" aria-modal="true" aria-label={editingBusinessUnit ? 'Edit business unit' : 'Create business unit'}>
           <button className="slide-over__backdrop" onClick={() => setPanelOpen(false)} aria-label="Close panel" />
           <div className="slide-over__panel">
-            <div className="slide-over__header"><h2>{editingFactory ? 'Edit Factory' : 'New Factory'}</h2><Button size="sm" variant="ghost" onClick={() => setPanelOpen(false)}>Close</Button></div>
+            <div className="slide-over__header"><h2>{editingBusinessUnit ? 'Edit Business Unit' : 'New Business Unit'}</h2><Button size="sm" variant="ghost" onClick={() => setPanelOpen(false)}>Close</Button></div>
             <div className="slide-over__body">
-              {isSuperadmin && <label>Organisation<select value={form.org_id} disabled={!!editingFactory} onChange={(event) => setForm({ ...form, org_id: event.target.value })}>{(lookups.organisations ?? []).map((org: any) => <option key={org.id} value={org.id}>{org.name}</option>)}</select></label>}
+              {isSuperadmin && <label>Organisation<select value={form.org_id} disabled={!!editingBusinessUnit} onChange={(event) => setForm({ ...form, org_id: event.target.value })}>{(lookups.organisations ?? []).map((org: any) => <option key={org.id} value={org.id}>{org.name}</option>)}</select></label>}
               <div className="form-grid">
                 <Input label="Name" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
                 <Input label="Code" required value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase() })} />
@@ -194,10 +194,24 @@ export default function FactoriesAdminClient({ initialFactories, lookups }: { in
               <label className="toggle-row"><input type="checkbox" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} /> Active</label>
               <label className="toggle-row"><input type="checkbox" checked={form.is_default} onChange={(event) => setForm({ ...form, is_default: event.target.checked })} /> Set as Default</label>
             </div>
-            <div className="slide-over__footer"><Button variant="outline" onClick={() => setPanelOpen(false)}>Cancel</Button><Button loading={isPending} onClick={submit}>Save Factory</Button></div>
+            <div className="slide-over__footer"><Button variant="outline" onClick={() => setPanelOpen(false)}>Cancel</Button><Button loading={isPending} onClick={submit}>Save Business Unit</Button></div>
           </div>
         </div>
       )}
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

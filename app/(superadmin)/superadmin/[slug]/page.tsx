@@ -1,6 +1,6 @@
 const pageTitles: Record<string, string> = {
   organisations: 'Organisations',
-  factories: 'Factories',
+  businessUnits: 'Business Units',
   users: 'Users',
   roles: 'Roles & Permissions',
   sessions: 'User Sessions',
@@ -29,3 +29,13 @@ export default async function SuperadminPlaceholder({ params }: { params: Promis
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+

@@ -58,3 +58,8 @@ export async function bulkUpdate(roleId: string, permissions: Array<{
     return fail(error)
   }
 }
+
+
+
+
+

@@ -8,7 +8,7 @@ export type PaymentMode = 'Cash' | 'UPI' | 'Bank Transfer' | 'Adjustment' | 'Set
 // This keeps the typed client usable while the MVP routes are being wired.
 export type Database = any
 
-export interface Tenant {
+export interface BusinessUnit {
   id: string
   name: string
   phone: string
@@ -17,7 +17,7 @@ export interface Tenant {
 
 export interface Machine {
   id: string
-  tenant_id: string
+  business_unit_id: string
   machine_code: string
   machine_name: string
   status: MachineStatus
@@ -25,7 +25,7 @@ export interface Machine {
 
 export interface Operator {
   id: string
-  tenant_id: string
+  business_unit_id: string
   operator_code: string
   operator_name: string
   phone: string | null
@@ -34,7 +34,7 @@ export interface Operator {
 
 export interface Product {
   id: string
-  tenant_id: string
+  business_unit_id: string
   product_code: string
   product_name: string
   category: ProductCategory
@@ -43,7 +43,7 @@ export interface Product {
 
 export interface ProductionRun {
   id: string
-  tenant_id: string
+  business_unit_id: string
   prod_code: string | null
   run_date: string
   product_id: string
@@ -61,7 +61,7 @@ export interface ProductionRun {
 
 export interface Message {
   id: string
-  tenant_id: string | null
+  business_unit_id: string | null
   phone: string
   content: string
   parsed_type: string | null
@@ -88,3 +88,8 @@ export interface DashboardStats {
   messages_today: number
   unknown_messages: number
 }
+
+
+
+
+

@@ -12,7 +12,7 @@ organisations
   -> org_modules
   -> org_subscriptions
   -> roles / users / permissions
-  -> tenants
+  -> business units
       -> customers / vendors / products / materials / warehouses
       -> sales / purchases / inventory / production / HR / CRM transactions
 ```
@@ -21,7 +21,7 @@ organisations
 
 ### Core Platform and Access
 
-`organisations`, `tenants`, `users`, `roles`, `user_roles`, `role_permissions`, `field_permissions`, `field_permission_templates`, `org_modules`, `org_settings`, `custom_field_definitions`, `custom_field_values`, `audit_log`, `api_keys`, `number_series_config`, `number_series_log`
+`organisations`, `business units`, `users`, `roles`, `user_roles`, `role_permissions`, `field_permissions`, `field_permission_templates`, `org_modules`, `org_settings`, `custom_field_definitions`, `custom_field_values`, `audit_log`, `api_keys`, `number_series_config`, `number_series_log`
 
 ### Sales and Receivables
 
@@ -116,11 +116,11 @@ materials/products
 
 ## RLS Strategy
 
-Tenant-scoped tables should enforce:
+Business Unit-scoped tables should enforce:
 
 ```sql
-tenant_id = (
-  select tenant_id from public.users where id = auth.uid()
+business_unit_id = (
+  select business_unit_id from public.users where id = auth.uid()
 )
 ```
 
@@ -145,3 +145,8 @@ Important: `stock_levels` and `finished_goods_stock` are views, so table RLS com
 - Client-side organisation creation cannot bypass RLS.
 - User onboarding must coordinate Supabase Auth users and `public.users` rows.
 - PO/GRN number-series behavior is not yet consistent with sales-side documents.
+
+
+
+
+

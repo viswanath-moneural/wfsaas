@@ -30,13 +30,13 @@ export default function UsersClient({ users, lookups }: { users: any[]; lookups:
     email: '',
     temporaryPassword: '',
     org_id: '',
-    tenant_id: '',
+    business_unit_id: '',
     role_id: '',
     phone: '',
     is_active: true,
   })
 
-  const orgFactories = (lookups.factories ?? []).filter((factory: any) => factory.org_id === form.org_id)
+  const orgBusinessUnits = (lookups.businessUnits ?? []).filter((businessUnit: any) => businessUnit.org_id === form.org_id)
   const orgRoles = (lookups.roles ?? []).filter((roleRow: any) => roleRow.org_id === form.org_id)
 
   const roleOptions = useMemo(() => {
@@ -62,7 +62,7 @@ export default function UsersClient({ users, lookups }: { users: any[]; lookups:
     setForm((current) => ({
       ...current,
       [key]: value,
-      ...(key === 'org_id' ? { tenant_id: '', role_id: '' } : {}),
+      ...(key === 'org_id' ? { business_unit_id: '', role_id: '' } : {}),
     }))
   }
 
@@ -75,7 +75,7 @@ export default function UsersClient({ users, lookups }: { users: any[]; lookups:
         password: form.temporaryPassword,
         full_name: fullName(form.firstName, form.lastName),
         org_id: form.org_id,
-        tenant_id: form.tenant_id || null,
+        business_unit_id: form.business_unit_id || null,
         role_id: form.role_id,
         phone: form.phone,
         is_active: form.is_active,
@@ -87,7 +87,7 @@ export default function UsersClient({ users, lookups }: { users: any[]; lookups:
       setCredentials({ email: form.email, password: form.temporaryPassword })
       const refreshed = await superadminUsers.listAll()
       if (refreshed.data) setRows(refreshed.data)
-      setForm({ firstName: '', lastName: '', email: '', temporaryPassword: '', org_id: '', tenant_id: '', role_id: '', phone: '', is_active: true })
+      setForm({ firstName: '', lastName: '', email: '', temporaryPassword: '', org_id: '', business_unit_id: '', role_id: '', phone: '', is_active: true })
       setPanelOpen(false)
     })
   }
@@ -171,9 +171,9 @@ export default function UsersClient({ users, lookups }: { users: any[]; lookups:
                 <option value="">Select organisation</option>
                 {(lookups.organisations ?? []).map((org: any) => <option key={org.id} value={org.id}>{org.name}</option>)}
               </select></label>
-              <label>Factory<select value={form.tenant_id} onChange={(event) => updateForm('tenant_id', event.target.value)}>
-                <option value="">No factory</option>
-                {orgFactories.map((factory: any) => <option key={factory.id} value={factory.id}>{factory.name}</option>)}
+              <label>Business Unit<select value={form.business_unit_id} onChange={(event) => updateForm('business_unit_id', event.target.value)}>
+                <option value="">No businessUnit</option>
+                {orgBusinessUnits.map((businessUnit: any) => <option key={businessUnit.id} value={businessUnit.id}>{businessUnit.name}</option>)}
               </select></label>
               <label>Role<select value={form.role_id} onChange={(event) => updateForm('role_id', event.target.value)}>
                 <option value="">Select role</option>
@@ -207,3 +207,13 @@ export default function UsersClient({ users, lookups }: { users: any[]; lookups:
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+

@@ -28,13 +28,13 @@ export default function UserDetailClient({ initialData }: { initialData: any }) 
     phone: initialData.user.phone ?? '',
     designation: initialData.user.designation ?? '',
     department: initialData.user.department ?? '',
-    factory_id: initialData.user.factory_id ?? '',
+    business_unit_id: initialData.user.business_unit_id ?? '',
     role_id: initialData.user.role_id ?? '',
     profile_id: initialData.user.profile_id ?? '',
     is_active: initialData.user.is_active !== false,
     password_reset_required: initialData.user.password_reset_required !== false,
   })
-  const [factoryToAdd, setFactoryToAdd] = useState('')
+  const [businessUnitToAdd, setBusinessUnitToAdd] = useState('')
   const [permissionSetToAdd, setPermissionSetToAdd] = useState('')
   const [passwordModal, setPasswordModal] = useState<{ password?: string; email: string } | null>(null)
   const [error, setError] = useState('')
@@ -43,7 +43,7 @@ export default function UserDetailClient({ initialData }: { initialData: any }) 
 
   const user = data.user
   const lookups = data.lookups ?? {}
-  const scopedFactories = (lookups.factories ?? []).filter((factory: any) => !user.org_id || factory.org_id === user.org_id)
+  const scopedBusinessUnits = (lookups.businessUnits ?? []).filter((businessUnit: any) => !user.org_id || businessUnit.org_id === user.org_id)
   const scopedRoles = (lookups.roles ?? []).filter((role: any) => role.org_id === user.org_id || role.org_id === null)
   const scopedProfiles = (lookups.profiles ?? []).filter((profile: any) => profile.org_id === user.org_id || profile.org_id === null)
   const assignedSetIds = useMemo(() => new Set((data.assignedPermissionSets ?? []).map((entry: any) => entry.permission_set_id)), [data.assignedPermissionSets])
@@ -63,7 +63,7 @@ export default function UserDetailClient({ initialData }: { initialData: any }) 
     startTransition(async () => {
       const result = await adminUsers.update(user.id, {
         ...edit,
-        factory_id: edit.factory_id || null,
+        business_unit_id: edit.business_unit_id || null,
         role_id: edit.role_id || null,
         profile_id: edit.profile_id || null,
       })
@@ -109,29 +109,29 @@ export default function UserDetailClient({ initialData }: { initialData: any }) 
     })
   }
 
-  function addFactory() {
-    if (!factoryToAdd) return
+  function addBusinessUnitAccess() {
+    if (!businessUnitToAdd) return
     startTransition(async () => {
-      const result = await adminUsers.addFactoryAccess(user.id, factoryToAdd)
+      const result = await adminUsers.addBusinessUnitAccess(user.id, businessUnitToAdd)
       if (result.error) setError(result.error)
       else {
-        setFactoryToAdd('')
+        setBusinessUnitToAdd('')
         refresh()
       }
     })
   }
 
-  function removeFactory(factoryId: string) {
+  function removeBusinessUnitAccess(businessUnitId: string) {
     startTransition(async () => {
-      const result = await adminUsers.removeFactoryAccess(user.id, factoryId)
+      const result = await adminUsers.removeBusinessUnitAccess(user.id, businessUnitId)
       if (result.error) setError(result.error)
       else refresh()
     })
   }
 
-  function setDefaultFactory(factoryId: string) {
+  function setDefaultBusinessUnit(businessUnitId: string) {
     startTransition(async () => {
-      const result = await adminUsers.setDefaultFactory(user.id, factoryId)
+      const result = await adminUsers.setDefaultBusinessUnit(user.id, businessUnitId)
       if (result.error) setError(result.error)
       else refresh()
     })
@@ -196,7 +196,7 @@ export default function UserDetailClient({ initialData }: { initialData: any }) 
             <Input label="Phone" value={edit.phone} onChange={(event) => setEdit({ ...edit, phone: event.target.value })} />
             <Input label="Designation" value={edit.designation} onChange={(event) => setEdit({ ...edit, designation: event.target.value })} />
             <Input label="Department" value={edit.department} onChange={(event) => setEdit({ ...edit, department: event.target.value })} />
-            <label>Factory<select value={edit.factory_id} onChange={(event) => setEdit({ ...edit, factory_id: event.target.value })}><option value="">No default factory</option>{scopedFactories.map((factory: any) => <option key={factory.id} value={factory.id}>{factory.name}</option>)}</select></label>
+            <label>BusinessUnit<select value={edit.business_unit_id} onChange={(event) => setEdit({ ...edit, business_unit_id: event.target.value })}><option value="">No default business unit</option>{scopedBusinessUnits.map((businessUnit: any) => <option key={businessUnit.id} value={businessUnit.id}>{businessUnit.name}</option>)}</select></label>
             <label>Role<select value={edit.role_id} onChange={(event) => setEdit({ ...edit, role_id: event.target.value })}><option value="">No role</option>{scopedRoles.map((role: any) => <option key={role.id} value={role.id}>{role.label}</option>)}</select></label>
             <label>Profile<select value={edit.profile_id} onChange={(event) => setEdit({ ...edit, profile_id: event.target.value })}><option value="">No profile</option>{scopedProfiles.map((profile: any) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</select></label>
             <label className="toggle-row"><input type="checkbox" checked={edit.password_reset_required} onChange={(event) => setEdit({ ...edit, password_reset_required: event.target.checked })} /> Force password reset</label>
@@ -209,22 +209,22 @@ export default function UserDetailClient({ initialData }: { initialData: any }) 
       {tab === 'access' && (
         <section className="detail-panel">
           <div className="inline-form">
-            <label>Add Factory<select value={factoryToAdd} onChange={(event) => setFactoryToAdd(event.target.value)}><option value="">Select factory</option>{scopedFactories.map((factory: any) => <option key={factory.id} value={factory.id}>{factory.name}</option>)}</select></label>
-            <Button onClick={addFactory} disabled={!factoryToAdd || isPending}>Add Access</Button>
+            <label>Add Business Unit<select value={businessUnitToAdd} onChange={(event) => setBusinessUnitToAdd(event.target.value)}><option value="">Select business unit</option>{scopedBusinessUnits.map((businessUnit: any) => <option key={businessUnit.id} value={businessUnit.id}>{businessUnit.name}</option>)}</select></label>
+            <Button onClick={addBusinessUnitAccess} disabled={!businessUnitToAdd || isPending}>Add Access</Button>
           </div>
           <div className="super-table">
             <table>
-              <thead><tr><th>Factory</th><th>Code</th><th>Default</th><th>Actions</th></tr></thead>
+              <thead><tr><th>BusinessUnit</th><th>Code</th><th>Default</th><th>Actions</th></tr></thead>
               <tbody>
-                {(data.factoryAccess ?? []).map((access: any) => (
-                  <tr key={access.factory_id}>
-                    <td>{access.factories?.name ?? access.factory_id}</td>
-                    <td>{access.factories?.code ?? '-'}</td>
+                {(data.businessUnitAccess ?? []).map((access: any) => (
+                  <tr key={access.business_unit_id}>
+                    <td>{access.businessUnits?.name ?? access.business_unit_id}</td>
+                    <td>{access.businessUnits?.code ?? '-'}</td>
                     <td>{access.is_default ? <Badge variant="success">Default</Badge> : '-'}</td>
-                    <td><div className="row-actions"><Button size="xs" variant="outline" disabled={access.is_default} onClick={() => setDefaultFactory(access.factory_id)}>Set Default</Button><Button size="xs" variant="danger" onClick={() => removeFactory(access.factory_id)}>Remove</Button></div></td>
+                    <td><div className="row-actions"><Button size="xs" variant="outline" disabled={access.is_default} onClick={() => setDefaultBusinessUnit(access.business_unit_id)}>Set Default</Button><Button size="xs" variant="danger" onClick={() => removeBusinessUnitAccess(access.business_unit_id)}>Remove</Button></div></td>
                   </tr>
                 ))}
-                {!(data.factoryAccess ?? []).length && <tr><td colSpan={4}>No factory access assigned.</td></tr>}
+                {!(data.businessUnitAccess ?? []).length && <tr><td colSpan={4}>No businessUnit access assigned.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -309,3 +309,16 @@ export default function UserDetailClient({ initialData }: { initialData: any }) 
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

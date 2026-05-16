@@ -7,7 +7,7 @@ import PageHeader from '@/components/layout/PageHeader'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
@@ -15,7 +15,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function LeadsPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const { error: notifyError } = useToast()
   const { canCreate } = usePermissions('crm')
   const [rows, setRows] = useState<any[]>([])
@@ -24,31 +24,31 @@ export default function LeadsPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState({ lead_code: '', name: '', company_name: '', phone: '', source: '', status: 'new', notes: '' })
 
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
-  async function load(tenantId: string) {
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void load(businessUnit.id) }, [businessUnit?.id])
+  async function load(businessUnitId: string) {
     const supabase = getSupabaseClient()
-    const { data, error: fetchError } = await supabase.from('leads').select('id, lead_code, name, company_name, phone, source, status, is_trial').eq('tenant_id', tenantId).order('created_at', { ascending: false })
+    const { data, error: fetchError } = await supabase.from('leads').select('id, lead_code, name, company_name, phone, source, status, is_trial').eq('business_unit_id', businessUnitId).order('created_at', { ascending: false })
     if (fetchError) setError(fetchError.message)
     setRows(data ?? [])
     setLoading(false)
   }
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!tenant?.id || !canCreate) return
+    if (!businessUnit?.id || !canCreate) return
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
-    const { data, error } = await supabase.from('leads').insert({ tenant_id: tenant.id, lead_code: form.lead_code.trim(), name: form.name.trim(), company_name: form.company_name.trim() || null, phone: form.phone.trim() || null, source: form.source.trim() || null, status: form.status, notes: form.notes.trim() || null }).select('id').single()
+    const { data, error } = await supabase.from('leads').insert({ business_unit_id: businessUnit.id, lead_code: form.lead_code.trim(), name: form.name.trim(), company_name: form.company_name.trim() || null, phone: form.phone.trim() || null, source: form.source.trim() || null, status: form.status, notes: form.notes.trim() || null }).select('id').single()
     setSaving(false)
     if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to add lead.'); return }
     setForm({ lead_code: '', name: '', company_name: '', phone: '', source: '', status: 'new', notes: '' })
-    await load(tenant.id)
+    await load(businessUnit.id)
   }
-  if (!tenant) return <TenantSetupNotice title="Leads" description="Select or create a factory before creating leads." />
+  if (!businessUnit) return <BusinessUnitSetupNotice title="Leads" description="Select or create a businessUnit before creating leads." />
   const columns: Column<any>[] = useMemo(() => [
     { key: 'lead_code', header: 'Lead Code' }, { key: 'name', header: 'Name' }, { key: 'company_name', header: 'Company', render: (v) => v || '-' }, { key: 'phone', header: 'Phone', render: (v) => v || '-' }, { key: 'source', header: 'Source', render: (v) => v || '-' }, { key: 'status', header: 'Status', render: (v) => <Badge variant="info">{v || '-'}</Badge> },
   ], [])
   return <>
-    <PageHeader title="Leads" description={`Lead pipeline for ${tenant.name}.`} />
+    <PageHeader title="Leads" description={`Lead pipeline for ${businessUnit.name}.`} />
     <section className="layout">
       <Card><h2>Add Lead</h2><form onSubmit={create}>
         <Input label="Lead code" value={form.lead_code} onChange={(e) => setForm((p) => ({ ...p, lead_code: e.target.value }))} required disabled={!canCreate} />
@@ -66,3 +66,12 @@ export default function LeadsPage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} select{height:var(--input-height-md)} .form-error{margin:0;color:var(--text-danger)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+
+

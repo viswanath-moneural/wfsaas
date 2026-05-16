@@ -12,7 +12,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { generateNextCode } from '@/lib/numberSeries'
 
 interface CustomerOption {
@@ -41,7 +41,7 @@ const EMPTY_FORM = {
 }
 
 export default function SalesOrdersPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const router = useRouter()
   const [orders, setOrders] = useState<SalesOrderRow[]>([])
   const [customers, setCustomers] = useState<CustomerOption[]>([])
@@ -53,15 +53,15 @@ export default function SalesOrdersPage() {
   const { canCreate } = usePermissions('sales')
 
   useEffect(() => {
-    if (!tenant?.id) {
+    if (!businessUnit?.id) {
       setLoading(false)
       return
     }
 
-    fetchPageData(tenant.id)
-  }, [tenant?.id])
+    fetchPageData(businessUnit.id)
+  }, [businessUnit?.id])
 
-  async function fetchPageData(tenantId: string) {
+  async function fetchPageData(businessUnitId: string) {
     setLoading(true)
     setError('')
 
@@ -73,13 +73,13 @@ export default function SalesOrdersPage() {
           id, so_code, order_date, expected_date, status, name, notes,
           customers(id, customer_code, customer_name)
         `)
-        .eq('tenant_id', tenantId)
+        .eq('business_unit_id', businessUnitId)
         .order('order_date', { ascending: false })
         .order('created_at', { ascending: false }),
       supabase
         .from('customers')
         .select('id, customer_code, customer_name')
-        .eq('tenant_id', tenantId)
+        .eq('business_unit_id', businessUnitId)
         .eq('is_active', true)
         .order('customer_name', { ascending: true }),
     ])
@@ -94,7 +94,7 @@ export default function SalesOrdersPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!tenant?.id) return
+    if (!businessUnit?.id) return
 
     setSaving(true)
     setError('')
@@ -102,14 +102,14 @@ export default function SalesOrdersPage() {
     const supabase = getSupabaseClient()
     let soCode = ''
     try {
-      soCode = (await generateNextCode(tenant.id, 'sales_order')).code
+      soCode = (await generateNextCode(businessUnit.id, 'sales_order')).code
     } catch (seriesError: any) {
       setSaving(false)
       setError(`${seriesError.message} Configure Number Series in Configuration.`)
       return
     }
     const { error: insertError } = await supabase.from('sales_orders').insert({
-      tenant_id: tenant.id,
+      business_unit_id: businessUnit.id,
       so_code: soCode,
       customer_id: form.customer_id,
       order_date: form.order_date,
@@ -131,7 +131,7 @@ export default function SalesOrdersPage() {
       order_date: new Date().toISOString().split('T')[0],
       customer_id: customers[0]?.id ?? '',
     })
-    await fetchPageData(tenant.id)
+    await fetchPageData(businessUnit.id)
   }
 
   useEffect(() => {
@@ -160,15 +160,15 @@ export default function SalesOrdersPage() {
     { key: 'notes', header: 'Notes', render: (value) => value || '-' },
   ], [])
 
-  if (!tenant) {
-    return <TenantSetupNotice title="Sales Orders" description="Select or create a factory before creating sales orders." />
+  if (!businessUnit) {
+    return <BusinessUnitSetupNotice title="Sales Orders" description="Select or create a businessUnit before creating sales orders." />
   }
 
   return (
     <>
       <PageHeader
         title="Sales Orders"
-        description={`Create and track customer orders for ${tenant.name}.`}
+        description={`Create and track customer orders for ${businessUnit.name}.`}
       />
 
       <section className="transaction-layout">
@@ -327,3 +327,12 @@ export default function SalesOrdersPage() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+

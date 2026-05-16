@@ -10,7 +10,7 @@ export async function listAll(orgId?: string): Promise<SuperadminActionResult<an
     const verified = await requireSuperadmin()
     await getSuperadminContext(verified)
     const admin = createAdminClient()
-    let query = admin.from('users').select('*, organisations(name, slug), tenants(name), user_roles(role_id, roles(role_name))').order('created_at', { ascending: false })
+    let query = admin.from('users').select('*, organisations(name, slug), business_units(name), user_roles(role_id, roles(role_name))').order('created_at', { ascending: false })
     if (orgId) query = query.eq('org_id', orgId)
     const [{ data, error }, { data: authUsers }] = await Promise.all([
       query,
@@ -30,22 +30,22 @@ export async function listAll(orgId?: string): Promise<SuperadminActionResult<an
 
 export async function getManagementLookups(): Promise<SuperadminActionResult<{
   organisations: any[]
-  factories: any[]
+  businessUnits: any[]
   roles: any[]
 }>> {
   try {
     const verified = await requireSuperadmin()
     await getSuperadminContext(verified)
     const admin = createAdminClient()
-    const [{ data: organisations, error: orgError }, { data: factories, error: factoryError }, { data: roles, error: roleError }] = await Promise.all([
+    const [{ data: organisations, error: orgError }, { data: businessUnits, error: businessUnitError }, { data: roles, error: roleError }] = await Promise.all([
       admin.from('organisations').select('id, name, slug, is_active').order('name'),
-      admin.from('tenants').select('id, name, org_id, is_active').order('name'),
+      admin.from('business_units').select('id, name, org_id, is_active').order('name'),
       admin.from('roles').select('id, org_id, role_name, description, is_system').order('role_name'),
     ])
     if (orgError) throw orgError
-    if (factoryError) throw factoryError
+    if (businessUnitError) throw businessUnitError
     if (roleError) throw roleError
-    return ok({ organisations: organisations ?? [], factories: factories ?? [], roles: roles ?? [] })
+    return ok({ organisations: organisations ?? [], businessUnits: businessUnits ?? [], roles: roles ?? [] })
   } catch (error) {
     return fail(error)
   }
@@ -56,7 +56,7 @@ export async function create(input: {
   password: string
   full_name: string
   org_id: string
-  tenant_id?: string | null
+  business_unit_id?: string | null
   role_id: string
   phone?: string | null
   is_active?: boolean
@@ -94,7 +94,7 @@ export async function create(input: {
         .insert({
           id: authData.user.id,
           org_id: input.org_id,
-          tenant_id: input.tenant_id || null,
+          business_unit_id: input.business_unit_id || null,
           full_name: input.full_name.trim(),
           phone: trimOrNull(input.phone) ?? '0000000000',
           role: role.role_name,
@@ -135,7 +135,7 @@ export async function update(id: string, input: {
   phone?: string | null
   email?: string
   org_id?: string
-  tenant_id?: string | null
+  business_unit_id?: string | null
   role?: string
   is_active?: boolean
 }): Promise<SuperadminActionResult<any>> {
@@ -150,7 +150,7 @@ export async function update(id: string, input: {
       ...(input.phone !== undefined ? { phone: trimOrNull(input.phone) ?? '0000000000' } : {}),
       ...(input.email !== undefined ? { email: input.email.trim().toLowerCase() } : {}),
       ...(input.org_id !== undefined ? { org_id: input.org_id } : {}),
-      ...(input.tenant_id !== undefined ? { tenant_id: input.tenant_id || null } : {}),
+      ...(input.business_unit_id !== undefined ? { business_unit_id: input.business_unit_id || null } : {}),
       ...(input.role !== undefined ? { role: input.role } : {}),
       ...(input.is_active !== undefined ? { is_active: input.is_active } : {}),
       updated_at: nowIso(),
@@ -254,7 +254,7 @@ export async function getDetails(id: string): Promise<SuperadminActionResult<any
       { data: authUsers },
       lookupsResult,
     ] = await Promise.all([
-      admin.from('users').select('*, organisations(name, slug), tenants(name)').eq('id', id).single(),
+      admin.from('users').select('*, organisations(name, slug), business_units(name)').eq('id', id).single(),
       admin.from('user_roles').select('id, role_id, assigned_at, is_active, roles(id, role_name, description, org_id)').eq('user_id', id).order('assigned_at', { ascending: false }),
       admin.from('audit_log').select('*').or(`changed_by.eq.${id},record_id.eq.${id}`).order('changed_at', { ascending: false }).limit(50),
       admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
@@ -272,7 +272,7 @@ export async function getDetails(id: string): Promise<SuperadminActionResult<any
       permissions: permissions ?? [],
       auditLog: auditLog ?? [],
       sessions: authUser ? [{ id: authUser.id, email: authUser.email, last_sign_in_at: authUser.last_sign_in_at, created_at: authUser.created_at }] : [],
-      lookups: lookupsResult.data ?? { organisations: [], factories: [], roles: [] },
+      lookups: lookupsResult.data ?? { organisations: [], businessUnits: [], roles: [] },
     })
   } catch (error) {
     return fail(error)
@@ -338,3 +338,11 @@ export async function revokeSessions(id: string): Promise<SuperadminActionResult
     return fail(error)
   }
 }
+
+
+
+
+
+
+
+

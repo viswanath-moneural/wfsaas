@@ -65,3 +65,8 @@ export function trimOrNull(value: unknown) {
   const text = String(value ?? '').trim()
   return text || null
 }
+
+
+
+
+

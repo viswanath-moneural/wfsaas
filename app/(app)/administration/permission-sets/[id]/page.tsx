@@ -14,3 +14,8 @@ export default async function AdministrationPermissionSetDetailPage({ params }: 
 
   return <PermissionSetDetailClient initialData={result.data} />
 }
+
+
+
+
+

@@ -13,7 +13,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function MovementsPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const { error: notifyError } = useToast()
   const [rmRows, setRmRows] = useState<any[]>([])
   const [fgRows, setFgRows] = useState<any[]>([])
@@ -27,15 +27,15 @@ export default function MovementsPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState({ item_type: 'material', item_id: '', warehouse_id: '', location_id: '', movement_type: 'in', qty: '0', unit: 'kg', movement_date: new Date().toISOString().split('T')[0], ref_table: '', ref_id: '' })
   const { canCreate } = usePermissions('inventory')
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
-  async function load(tenantId: string) {
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void load(businessUnit.id) }, [businessUnit?.id])
+  async function load(businessUnitId: string) {
     const supabase = getSupabaseClient()
     const [{ data: rm }, { data: fg }, { data: mat }, { data: prod }, { data: wh }] = await Promise.all([
-      supabase.from('stock_movements').select('id, movement_date, movement_type, qty, unit, ref_table, materials(material_code, material_name), warehouses(warehouse_code), warehouse_locations(location_code)').eq('tenant_id', tenantId).order('movement_date', { ascending: false }).limit(100),
-      supabase.from('finished_goods_movements').select('id, movement_date, movement_type, qty, ref_table, products(product_code, product_name), warehouses(warehouse_code), warehouse_locations(location_code)').eq('tenant_id', tenantId).order('movement_date', { ascending: false }).limit(100),
-      supabase.from('materials').select('id, material_code, material_name, unit').eq('tenant_id', tenantId).eq('is_active', true),
-      supabase.from('products').select('id, product_code, product_name').eq('tenant_id', tenantId).eq('is_active', true),
-      supabase.from('warehouses').select('id, warehouse_code, warehouse_name').eq('tenant_id', tenantId).eq('is_active', true).order('warehouse_code', { ascending: true }),
+      supabase.from('stock_movements').select('id, movement_date, movement_type, qty, unit, ref_table, materials(material_code, material_name), warehouses(warehouse_code), warehouse_locations(location_code)').eq('business_unit_id', businessUnitId).order('movement_date', { ascending: false }).limit(100),
+      supabase.from('finished_goods_movements').select('id, movement_date, movement_type, qty, ref_table, products(product_code, product_name), warehouses(warehouse_code), warehouse_locations(location_code)').eq('business_unit_id', businessUnitId).order('movement_date', { ascending: false }).limit(100),
+      supabase.from('materials').select('id, material_code, material_name, unit').eq('business_unit_id', businessUnitId).eq('is_active', true),
+      supabase.from('products').select('id, product_code, product_name').eq('business_unit_id', businessUnitId).eq('is_active', true),
+      supabase.from('warehouses').select('id, warehouse_code, warehouse_name').eq('business_unit_id', businessUnitId).eq('is_active', true).order('warehouse_code', { ascending: true }),
     ])
     const warehouseRows = wh ?? []
     let locationRows: any[] = []
@@ -51,13 +51,13 @@ export default function MovementsPage() {
     setRmRows(rm ?? []); setFgRows(fg ?? []); setMaterials(mat ?? []); setProducts(prod ?? []); setWarehouses(warehouseRows); setLocations(locationRows); setLoading(false)
   }
 
-  async function fetchConfirmedBalance(tenantId: string, itemType: string, itemId: string) {
+  async function fetchConfirmedBalance(businessUnitId: string, itemType: string, itemId: string) {
     const supabase = getSupabaseClient()
     if (itemType === 'material') {
       const { data } = await supabase
         .from('stock_levels')
         .select('current_stock, default_unit')
-        .eq('tenant_id', tenantId)
+        .eq('business_unit_id', businessUnitId)
         .eq('material_id', itemId)
         .maybeSingle()
       return data ? `${Number(data.current_stock ?? 0)} ${data.default_unit ?? form.unit}` : 'No stock balance row found'
@@ -66,14 +66,14 @@ export default function MovementsPage() {
     const { data } = await supabase
       .from('finished_goods_stock')
       .select('current_stock')
-      .eq('tenant_id', tenantId)
+      .eq('business_unit_id', businessUnitId)
       .eq('product_id', itemId)
       .maybeSingle()
     return data ? `${Number(data.current_stock ?? 0)} units` : 'No finished goods balance row found'
   }
 
   async function create(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); if (!tenant?.id) return
+    e.preventDefault(); if (!businessUnit?.id) return
     if (!canCreate) { setError('You do not have permission to create stock movements.'); return }
     if (!form.item_id) { setError('Select an item before saving movement.'); return }
     if (!form.warehouse_id) { setError('Select a warehouse before saving movement.'); return }
@@ -81,15 +81,15 @@ export default function MovementsPage() {
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
     if (form.item_type === 'material') {
-      const { data, error } = await supabase.from('stock_movements').insert({ tenant_id: tenant.id, material_id: form.item_id, warehouse_id: form.warehouse_id, location_id: form.location_id || null, movement_date: form.movement_date, movement_type: form.movement_type, qty: Number(form.qty), unit: form.unit, ref_table: form.ref_table || null, ref_id: form.ref_id || null }).select('id').single()
+      const { data, error } = await supabase.from('stock_movements').insert({ business_unit_id: businessUnit.id, material_id: form.item_id, warehouse_id: form.warehouse_id, location_id: form.location_id || null, movement_date: form.movement_date, movement_type: form.movement_type, qty: Number(form.qty), unit: form.unit, ref_table: form.ref_table || null, ref_id: form.ref_id || null }).select('id').single()
       if (handleSupabaseError(error, notifyError)) { setSaving(false); setError(error?.message ?? 'Failed to save stock movement.'); return }
     } else {
-      const { data, error } = await supabase.from('finished_goods_movements').insert({ tenant_id: tenant.id, product_id: form.item_id, warehouse_id: form.warehouse_id, location_id: form.location_id || null, movement_date: form.movement_date, movement_type: form.movement_type, qty: Number(form.qty), ref_table: form.ref_table || null, ref_id: form.ref_id || null }).select('id').single()
+      const { data, error } = await supabase.from('finished_goods_movements').insert({ business_unit_id: businessUnit.id, product_id: form.item_id, warehouse_id: form.warehouse_id, location_id: form.location_id || null, movement_date: form.movement_date, movement_type: form.movement_type, qty: Number(form.qty), ref_table: form.ref_table || null, ref_id: form.ref_id || null }).select('id').single()
       if (handleSupabaseError(error, notifyError)) { setSaving(false); setError(error?.message ?? 'Failed to save finished goods movement.'); return }
     }
-    const balance = await fetchConfirmedBalance(tenant.id, form.item_type, form.item_id)
+    const balance = await fetchConfirmedBalance(businessUnit.id, form.item_type, form.item_id)
     setConfirmedBalance(`Saved. Stock balance view now reports: ${balance}`)
-    setSaving(false); await load(tenant.id)
+    setSaving(false); await load(businessUnit.id)
   }
   const rmColumns: Column<any>[] = useMemo(() => [{ key: 'movement_date', header: 'Date' }, { key: 'materials', header: 'Material', render: (_v, r) => `${r.materials?.material_code ?? ''} - ${r.materials?.material_name ?? ''}` }, { key: 'warehouses', header: 'Warehouse', render: (_v, r) => r.warehouses?.warehouse_code ?? '-' }, { key: 'warehouse_locations', header: 'Location', render: (_v, r) => r.warehouse_locations?.location_code ?? '-' }, { key: 'movement_type', header: 'Type' }, { key: 'qty', header: 'Qty', align: 'right' }, { key: 'unit', header: 'Unit' }, { key: 'ref_table', header: 'Ref', render: (v) => v || '-' }], [])
   const fgColumns: Column<any>[] = useMemo(() => [{ key: 'movement_date', header: 'Date' }, { key: 'products', header: 'Product', render: (_v, r) => `${r.products?.product_code ?? ''} - ${r.products?.product_name ?? ''}` }, { key: 'warehouses', header: 'Warehouse', render: (_v, r) => r.warehouses?.warehouse_code ?? '-' }, { key: 'warehouse_locations', header: 'Location', render: (_v, r) => r.warehouse_locations?.location_code ?? '-' }, { key: 'movement_type', header: 'Type' }, { key: 'qty', header: 'Qty', align: 'right' }, { key: 'ref_table', header: 'Ref', render: (v) => v || '-' }], [])
@@ -118,3 +118,11 @@ export default function MovementsPage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} .form-error{margin:0;color:var(--text-danger)} .form-success{margin:0;color:var(--text-success);font-size:var(--text-sm)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+

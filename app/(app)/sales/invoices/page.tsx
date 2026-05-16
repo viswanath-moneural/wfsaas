@@ -13,13 +13,13 @@ import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { calcInvoiceTotals } from '@/lib/transactions'
 import { generateNextCode } from '@/lib/numberSeries'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 
 interface Row { id: string; invoice_no: string; invoice_date: string; status: string | null; total_amount: number | null; sales_orders: { so_code: string } | null; customers: { customer_name: string } | null }
 interface OrderOption { id: string; so_code: string; customer_id: string; status: string | null; customers: { customer_name: string } | null }
 
 export default function SalesInvoicesPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const router = useRouter()
   const [rows, setRows] = useState<Row[]>([])
   const [orders, setOrders] = useState<OrderOption[]>([])
@@ -29,14 +29,14 @@ export default function SalesInvoicesPage() {
   const [error, setError] = useState('')
   const { canCreate } = usePermissions('sales')
 
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void fetchData(tenant.id) }, [tenant?.id])
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void fetchData(businessUnit.id) }, [businessUnit?.id])
 
-  async function fetchData(tenantId: string) {
+  async function fetchData(businessUnitId: string) {
     setLoading(true)
     const supabase = getSupabaseClient()
     const [{ data: invoices }, { data: so }] = await Promise.all([
-      supabase.from('invoices').select('id, invoice_no, invoice_date, status, total_amount, sales_orders(so_code), customers(customer_name)').eq('tenant_id', tenantId).order('invoice_date', { ascending: false }),
-      supabase.from('sales_orders').select('id, so_code, customer_id, status, customers(customer_name)').eq('tenant_id', tenantId).order('order_date', { ascending: false }),
+      supabase.from('invoices').select('id, invoice_no, invoice_date, status, total_amount, sales_orders(so_code), customers(customer_name)').eq('business_unit_id', businessUnitId).order('invoice_date', { ascending: false }),
+      supabase.from('sales_orders').select('id, so_code, customer_id, status, customers(customer_name)').eq('business_unit_id', businessUnitId).order('order_date', { ascending: false }),
     ])
     setRows((invoices as unknown as Row[]) ?? [])
     setOrders((so as unknown as OrderOption[]) ?? [])
@@ -45,7 +45,7 @@ export default function SalesInvoicesPage() {
 
   async function createInvoice(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!tenant?.id || !form.so_id) return
+    if (!businessUnit?.id || !form.so_id) return
     if (!canCreate) {
       setError('You do not have permission to create invoices.')
       return
@@ -63,20 +63,20 @@ export default function SalesInvoicesPage() {
     }
     let invoiceNo = ''
     try {
-      invoiceNo = (await generateNextCode(tenant.id, 'invoice')).code
+      invoiceNo = (await generateNextCode(businessUnit.id, 'invoice')).code
     } catch (seriesError: any) {
       setSaving(false)
       setError(`${seriesError.message} Configure Number Series in Configuration.`)
       return
     }
     const { data: inserted, error: insertError } = await supabase.from('invoices').insert({
-      tenant_id: tenant.id, invoice_no: invoiceNo, so_id: form.so_id, customer_id: selected?.customer_id, invoice_date: form.invoice_date,
+      business_unit_id: businessUnit.id, invoice_no: invoiceNo, so_id: form.so_id, customer_id: selected?.customer_id, invoice_date: form.invoice_date,
       due_date: form.due_date || null, subtotal: totals.subtotal, discount_amt: totals.discount, taxable_value: totals.taxable, total_amount: totals.total, status: 'draft',
     }).select('id').single()
     if (insertError) { setError(insertError.message); setSaving(false); return }
-    await supabase.from('sales_orders').update({ status: 'invoiced' }).eq('tenant_id', tenant.id).eq('id', form.so_id)
+    await supabase.from('sales_orders').update({ status: 'invoiced' }).eq('business_unit_id', businessUnit.id).eq('id', form.so_id)
     setSaving(false)
-    await fetchData(tenant.id)
+    await fetchData(businessUnit.id)
     if (inserted?.id) router.push(`/sales/invoices/${inserted.id}`)
   }
 
@@ -89,7 +89,7 @@ export default function SalesInvoicesPage() {
     { key: 'status', header: 'Status', render: (v) => <Badge variant={STATUS_BADGE[String(v ?? 'draft')] ?? 'default'}>{String(v ?? 'draft')}</Badge> },
   ], [])
 
-  if (!tenant) return <TenantSetupNotice title="Invoices" description="Select or create a factory before creating invoices." />
+  if (!businessUnit) return <BusinessUnitSetupNotice title="Invoices" description="Select or create a businessUnit before creating invoices." />
 
   return <>
     <PageHeader title="Invoices" description="Create invoices from sales orders and track payment state." />
@@ -107,3 +107,12 @@ export default function SalesInvoicesPage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} h2{margin:0 0 var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} select{height:var(--input-height-md)} .form-error{margin:0;color:var(--text-danger)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+
+

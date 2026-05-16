@@ -19,7 +19,7 @@ interface UserRow {
   phone: string | null
   role: string | null
   is_active: boolean
-  tenants: { name: string } | null
+  businessUnits: { name: string } | null
 }
 
 interface RoleRow {
@@ -34,7 +34,7 @@ interface OrganisationRow {
   slug: string
 }
 
-interface TenantRow {
+interface BusinessUnitRow {
   id: string
   org_id: string
   name: string
@@ -46,7 +46,7 @@ export default function ConfigurationUsersPage() {
   const { canCreate: canEdit } = usePermissions('configuration')
   const [rows, setRows] = useState<UserRow[]>([])
   const [organisations, setOrganisations] = useState<OrganisationRow[]>([])
-  const [tenants, setTenants] = useState<TenantRow[]>([])
+  const [businessUnits, setBusinessUnits] = useState<BusinessUnitRow[]>([])
   const [roles, setRoles] = useState<RoleRow[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -57,7 +57,7 @@ export default function ConfigurationUsersPage() {
     email: '',
     temporary_password: '',
     org_id: org?.id ?? '',
-    factory_id: '',
+    business_unit_id: '',
     role_id: '',
   })
 
@@ -102,11 +102,11 @@ export default function ConfigurationUsersPage() {
     const [
       { data: usersData, error: usersError },
       { data: rolesData, error: rolesError },
-      { data: tenantsData, error: tenantsError },
+      { data: businessUnitsData, error: businessUnitsError },
     ] = await Promise.all([
       supabase
         .from('users')
-        .select('id, full_name, email, phone, role, is_active, tenants(name)')
+        .select('id, full_name, email, phone, role, is_active, business_units(name)')
         .eq('org_id', orgId)
         .order('created_at', { ascending: false }),
       supabase
@@ -115,7 +115,7 @@ export default function ConfigurationUsersPage() {
         .eq('org_id', orgId)
         .order('role_name', { ascending: true }),
       supabase
-        .from('tenants')
+        .from('business_units')
         .select('id, org_id, name')
         .eq('org_id', orgId)
         .eq('is_active', true)
@@ -123,17 +123,17 @@ export default function ConfigurationUsersPage() {
     ])
     if (usersError) setError(usersError.message)
     if (rolesError) setError(rolesError.message)
-    if (tenantsError) setError(tenantsError.message)
+    if (businessUnitsError) setError(businessUnitsError.message)
     setRows((usersData as unknown as UserRow[]) ?? [])
     setRoles((rolesData as RoleRow[]) ?? [])
-    setTenants((tenantsData as TenantRow[]) ?? [])
+    setBusinessUnits((businessUnitsData as BusinessUnitRow[]) ?? [])
     setForm((prev) => ({
       ...prev,
       role_id: (rolesData as RoleRow[] | null)?.some((item) => item.id === prev.role_id)
         ? prev.role_id
         : ((rolesData as RoleRow[] | null)?.[0]?.id ?? ''),
-      factory_id: (tenantsData as TenantRow[] | null)?.some((item) => item.id === prev.factory_id)
-        ? prev.factory_id
+      business_unit_id: (businessUnitsData as BusinessUnitRow[] | null)?.some((item) => item.id === prev.business_unit_id)
+        ? prev.business_unit_id
         : '',
     }))
     setLoading(false)
@@ -150,7 +150,7 @@ export default function ConfigurationUsersPage() {
       email: form.email,
       temporaryPassword: form.temporary_password,
       org_id: form.org_id,
-      factory_id: form.factory_id || null,
+      business_unit_id: form.business_unit_id || null,
       role_id: form.role_id,
     })
 
@@ -169,7 +169,7 @@ export default function ConfigurationUsersPage() {
       email: '',
       temporary_password: '',
       org_id: prev.org_id,
-      factory_id: '',
+      business_unit_id: '',
       role_id: roles[0]?.id ?? '',
     }))
     await loadOrgScopedData(form.org_id)
@@ -180,7 +180,7 @@ export default function ConfigurationUsersPage() {
     { key: 'email', header: 'Email' },
     { key: 'phone', header: 'Phone', render: (value) => value || '-' },
     { key: 'role', header: 'Role', render: (value) => value || '-' },
-    { key: 'tenants', header: 'Factory', render: (_value, row) => row.tenants?.name ?? 'All / Unassigned' },
+    { key: 'businessUnits', header: 'BusinessUnit', render: (_value, row) => row.businessUnits?.name ?? 'All / Unassigned' },
     { key: 'is_active', header: 'Status', render: (value) => <Badge variant={value ? 'success' : 'slate'}>{value ? 'Active' : 'Inactive'}</Badge> },
   ], [])
 
@@ -198,7 +198,7 @@ export default function ConfigurationUsersPage() {
               <Input label="Temporary password" type="text" value={form.temporary_password} onChange={(e) => setForm((p) => ({ ...p, temporary_password: e.target.value }))} required disabled={!canEdit} />
               <label>
                 <span>Organisation</span>
-                <select value={form.org_id} onChange={(e) => setForm((p) => ({ ...p, org_id: e.target.value, factory_id: '', role_id: '' }))} disabled={!canEdit}>
+                <select value={form.org_id} onChange={(e) => setForm((p) => ({ ...p, org_id: e.target.value, business_unit_id: '', role_id: '' }))} disabled={!canEdit}>
                   {organisations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>
@@ -209,10 +209,10 @@ export default function ConfigurationUsersPage() {
                 </select>
               </label>
               <label>
-                <span>Factory</span>
-                <select value={form.factory_id} onChange={(e) => setForm((p) => ({ ...p, factory_id: e.target.value }))} disabled={!canEdit}>
+                <span>BusinessUnit</span>
+                <select value={form.business_unit_id} onChange={(e) => setForm((p) => ({ ...p, business_unit_id: e.target.value }))} disabled={!canEdit}>
                   <option value="">Org level / unassigned</option>
-                  {tenants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  {businessUnits.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>
               {error && <p className="form-error">{error}</p>}
@@ -259,3 +259,16 @@ export default function ConfigurationUsersPage() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

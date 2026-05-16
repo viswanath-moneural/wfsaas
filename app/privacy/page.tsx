@@ -3,11 +3,17 @@ export default function Privacy() {
     <div style={{ padding: 40, fontFamily: 'Arial', maxWidth: 800, margin: '0 auto' }}>
       <h1>Privacy Policy — WhatsMFG</h1>
       <p>Last updated: May 2026</p>
-      <p>WhatsMFG collects WhatsApp messages from registered factory 
+      <p>WhatsMFG collects WhatsApp messages from registered businessUnit 
       operators to track production data. Data is stored securely 
-      and only accessible to the factory owner.</p>
+      and only accessible to the businessUnit owner.</p>
       <p>We do not sell or share data with third parties.</p>
       <p>Contact: viswanath-m@mcmpp.in</p>
     </div>
   )
 }
+
+
+
+
+
+

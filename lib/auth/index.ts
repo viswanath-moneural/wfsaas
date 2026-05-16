@@ -8,7 +8,7 @@ export interface CurrentUserContext {
   email: string | null
   fullName: string | null
   orgId: string
-  tenantId: string | null
+  businessUnitId: string | null
   roleName: string
   isAdmin: boolean
   isSuperadmin: boolean
@@ -26,7 +26,7 @@ export async function getCurrentUserContext(): Promise<CurrentUserContext | null
 
   const { data: appUser, error: userError } = await supabase
     .from('users')
-    .select('id, email, full_name, org_id, tenant_id, role, is_active')
+    .select('id, email, full_name, org_id, business_unit_id, role, is_active')
     .eq('id', user.id)
     .single()
 
@@ -85,7 +85,7 @@ export async function getCurrentUserContext(): Promise<CurrentUserContext | null
     email: appUser.email ?? user.email ?? null,
     fullName: appUser.full_name ?? null,
     orgId: appUser.org_id,
-    tenantId: appUser.tenant_id,
+    businessUnitId: appUser.business_unit_id,
     roleName,
     isAdmin,
     isSuperadmin,
@@ -105,3 +105,8 @@ export async function requireCurrentUserContext() {
   if (!context) redirect('/login')
   return context
 }
+
+
+
+
+

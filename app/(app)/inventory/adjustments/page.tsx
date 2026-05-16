@@ -13,7 +13,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function AdjustmentsPage() {
-  const { tenant, user } = useAuth()
+  const { businessUnit, user } = useAuth()
   const { error: notifyError } = useToast()
   const [rows, setRows] = useState<any[]>([])
   const [materials, setMaterials] = useState<any[]>([])
@@ -29,22 +29,22 @@ export default function AdjustmentsPage() {
   const { canCreate } = usePermissions('inventory')
   const selectedItemId = form.item_type === 'material' ? form.material_id : form.product_id
   const locationOptions = locations.filter((location) => location.warehouse_id === form.warehouse_id)
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void load(businessUnit.id) }, [businessUnit?.id])
   useEffect(() => {
-    if (!tenant?.id || !form.warehouse_id || selectedItemId.length === 0) {
+    if (!businessUnit?.id || !form.warehouse_id || selectedItemId.length === 0) {
       setCurrentBalance('')
       return
     }
-    void fetchWarehouseBalance(tenant.id, form.item_type, selectedItemId, form.warehouse_id).then(setCurrentBalance)
-  }, [tenant?.id, form.item_type, form.material_id, form.product_id, form.warehouse_id])
+    void fetchWarehouseBalance(businessUnit.id, form.item_type, selectedItemId, form.warehouse_id).then(setCurrentBalance)
+  }, [businessUnit?.id, form.item_type, form.material_id, form.product_id, form.warehouse_id])
 
-  async function load(tenantId: string) {
+  async function load(businessUnitId: string) {
     const supabase = getSupabaseClient()
     const [{ data: adj }, { data: mat }, { data: prod }, { data: wh }] = await Promise.all([
-      supabase.from('stock_adjustments').select('id, adjustment_code, adjustment_date, item_type, qty, unit, reason_code, warehouses(warehouse_code), warehouse_locations(location_code)').eq('tenant_id', tenantId).order('adjustment_date', { ascending: false }),
-      supabase.from('materials').select('id, material_code, material_name').eq('tenant_id', tenantId).eq('is_active', true),
-      supabase.from('products').select('id, product_code, product_name').eq('tenant_id', tenantId).eq('is_active', true),
-      supabase.from('warehouses').select('id, warehouse_code, warehouse_name').eq('tenant_id', tenantId).eq('is_active', true),
+      supabase.from('stock_adjustments').select('id, adjustment_code, adjustment_date, item_type, qty, unit, reason_code, warehouses(warehouse_code), warehouse_locations(location_code)').eq('business_unit_id', businessUnitId).order('adjustment_date', { ascending: false }),
+      supabase.from('materials').select('id, material_code, material_name').eq('business_unit_id', businessUnitId).eq('is_active', true),
+      supabase.from('products').select('id, product_code, product_name').eq('business_unit_id', businessUnitId).eq('is_active', true),
+      supabase.from('warehouses').select('id, warehouse_code, warehouse_name').eq('business_unit_id', businessUnitId).eq('is_active', true),
     ])
     const warehouseRows = wh ?? []
     let locationRows: any[] = []
@@ -66,12 +66,12 @@ export default function AdjustmentsPage() {
     return movementType.includes('out') || movementType.includes('issue') || movementType.includes('dispatch') ? -qty : qty
   }
 
-  async function fetchWarehouseBalance(tenantId: string, itemType: string, itemId: string, warehouseId: string) {
+  async function fetchWarehouseBalance(businessUnitId: string, itemType: string, itemId: string, warehouseId: string) {
     const supabase = getSupabaseClient()
     if (itemType === 'material') {
       const [{ data: movements }, { data: adjustments }] = await Promise.all([
-        supabase.from('stock_movements').select('movement_type, qty').eq('tenant_id', tenantId).eq('warehouse_id', warehouseId).eq('material_id', itemId),
-        supabase.from('stock_adjustments').select('qty').eq('tenant_id', tenantId).eq('warehouse_id', warehouseId).eq('material_id', itemId),
+        supabase.from('stock_movements').select('movement_type, qty').eq('business_unit_id', businessUnitId).eq('warehouse_id', warehouseId).eq('material_id', itemId),
+        supabase.from('stock_adjustments').select('qty').eq('business_unit_id', businessUnitId).eq('warehouse_id', warehouseId).eq('material_id', itemId),
       ])
       const movementBalance = (movements ?? []).reduce((sum, row) => sum + signedMovementQty(row), 0)
       const adjustmentBalance = (adjustments ?? []).reduce((sum, row) => sum + Number(row.qty ?? 0), 0)
@@ -79,27 +79,27 @@ export default function AdjustmentsPage() {
     }
 
     const [{ data: movements }, { data: adjustments }] = await Promise.all([
-      supabase.from('finished_goods_movements').select('movement_type, qty').eq('tenant_id', tenantId).eq('warehouse_id', warehouseId).eq('product_id', itemId),
-      supabase.from('stock_adjustments').select('qty').eq('tenant_id', tenantId).eq('warehouse_id', warehouseId).eq('product_id', itemId),
+      supabase.from('finished_goods_movements').select('movement_type, qty').eq('business_unit_id', businessUnitId).eq('warehouse_id', warehouseId).eq('product_id', itemId),
+      supabase.from('stock_adjustments').select('qty').eq('business_unit_id', businessUnitId).eq('warehouse_id', warehouseId).eq('product_id', itemId),
     ])
     const movementBalance = (movements ?? []).reduce((sum, row) => sum + signedMovementQty(row), 0)
     const adjustmentBalance = (adjustments ?? []).reduce((sum, row) => sum + Number(row.qty ?? 0), 0)
     return `${movementBalance + adjustmentBalance} units`
   }
 
-  async function fetchConfirmedBalance(tenantId: string, itemType: string, itemId: string) {
+  async function fetchConfirmedBalance(businessUnitId: string, itemType: string, itemId: string) {
     const supabase = getSupabaseClient()
     if (itemType === 'material') {
-      const { data } = await supabase.from('stock_levels').select('current_stock, default_unit').eq('tenant_id', tenantId).eq('material_id', itemId).maybeSingle()
+      const { data } = await supabase.from('stock_levels').select('current_stock, default_unit').eq('business_unit_id', businessUnitId).eq('material_id', itemId).maybeSingle()
       return data ? `${Number(data.current_stock ?? 0)} ${data.default_unit ?? form.unit}` : 'No stock balance row found'
     }
 
-    const { data } = await supabase.from('finished_goods_stock').select('current_stock').eq('tenant_id', tenantId).eq('product_id', itemId).maybeSingle()
+    const { data } = await supabase.from('finished_goods_stock').select('current_stock').eq('business_unit_id', businessUnitId).eq('product_id', itemId).maybeSingle()
     return data ? `${Number(data.current_stock ?? 0)} units` : 'No finished goods balance row found'
   }
 
   async function create(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); if (!tenant?.id) return
+    e.preventDefault(); if (!businessUnit?.id) return
     if (!canCreate) { setError('You do not have permission to post stock adjustments.'); return }
     if (!selectedItemId) { setError('Select an item before saving adjustment.'); return }
     if (!form.warehouse_id) { setError('Select a warehouse before saving adjustment.'); return }
@@ -108,14 +108,14 @@ export default function AdjustmentsPage() {
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
     const { data, error } = await supabase.from('stock_adjustments').insert({
-      tenant_id: tenant.id, adjustment_code: form.adjustment_code, adjustment_date: form.adjustment_date, item_type: form.item_type, material_id: form.item_type === 'material' ? form.material_id : null,
+      business_unit_id: businessUnit.id, adjustment_code: form.adjustment_code, adjustment_date: form.adjustment_date, item_type: form.item_type, material_id: form.item_type === 'material' ? form.material_id : null,
       product_id: form.item_type === 'product' ? form.product_id : null, warehouse_id: form.warehouse_id, location_id: form.location_id || null, qty: Number(form.qty), unit: form.unit, reason_code: form.reason_code || null, notes: form.notes || null, approved_by: user?.id ?? null,
     }).select('id').single()
     if (handleSupabaseError(error, notifyError)) { setSaving(false); setError(error?.message ?? 'Failed to save stock adjustment.'); return }
-    const balance = await fetchConfirmedBalance(tenant.id, form.item_type, selectedItemId)
+    const balance = await fetchConfirmedBalance(businessUnit.id, form.item_type, selectedItemId)
     setConfirmedBalance(`Saved. Stock balance view now reports: ${balance}`)
-    await fetchWarehouseBalance(tenant.id, form.item_type, selectedItemId, form.warehouse_id).then(setCurrentBalance)
-    setSaving(false); await load(tenant.id)
+    await fetchWarehouseBalance(businessUnit.id, form.item_type, selectedItemId, form.warehouse_id).then(setCurrentBalance)
+    setSaving(false); await load(businessUnit.id)
   }
   const columns: Column<any>[] = useMemo(() => [
     { key: 'adjustment_code', header: 'Adj No.' }, { key: 'adjustment_date', header: 'Date' }, { key: 'item_type', header: 'Item Type' }, { key: 'qty', header: 'Qty', align: 'right' }, { key: 'unit', header: 'Unit' }, { key: 'reason_code', header: 'Reason', render: (v) => v || '-' }, { key: 'warehouses', header: 'Warehouse', render: (_v, r) => r.warehouses?.warehouse_code ?? '-' }, { key: 'warehouse_locations', header: 'Location', render: (_v, r) => r.warehouse_locations?.location_code ?? '-' },
@@ -144,3 +144,11 @@ export default function AdjustmentsPage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} .balance{margin:0;color:var(--text-secondary);font-size:var(--text-sm)} .form-error{margin:0;color:var(--text-danger)} .form-success{margin:0;color:var(--text-success);font-size:var(--text-sm)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+

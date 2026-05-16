@@ -11,14 +11,14 @@ import Badge, { STATUS_BADGE } from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { generateNextCode } from '@/lib/numberSeries'
 
 interface Row { id: string; do_code: string; dispatch_date: string; status: string | null; sales_orders: { so_code: string } | null; customers: { customer_name: string } | null }
 interface OrderOption { id: string; so_code: string; customer_id: string; status: string | null; customers: { customer_name: string } | null }
 
 export default function DispatchPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const router = useRouter()
   const [rows, setRows] = useState<Row[]>([])
   const [orders, setOrders] = useState<OrderOption[]>([])
@@ -28,19 +28,19 @@ export default function DispatchPage() {
   const [error, setError] = useState('')
   const { canCreate } = usePermissions('sales')
 
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void fetchData(tenant.id) }, [tenant?.id])
-  async function fetchData(tenantId: string) {
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void fetchData(businessUnit.id) }, [businessUnit?.id])
+  async function fetchData(businessUnitId: string) {
     const supabase = getSupabaseClient()
     const [{ data: dispatches }, { data: so }] = await Promise.all([
-      supabase.from('dispatch_orders').select('id, do_code, dispatch_date, status, sales_orders(so_code), customers(customer_name)').eq('tenant_id', tenantId).order('dispatch_date', { ascending: false }),
-      supabase.from('sales_orders').select('id, so_code, customer_id, status, customers(customer_name)').eq('tenant_id', tenantId).order('order_date', { ascending: false }),
+      supabase.from('dispatch_orders').select('id, do_code, dispatch_date, status, sales_orders(so_code), customers(customer_name)').eq('business_unit_id', businessUnitId).order('dispatch_date', { ascending: false }),
+      supabase.from('sales_orders').select('id, so_code, customer_id, status, customers(customer_name)').eq('business_unit_id', businessUnitId).order('order_date', { ascending: false }),
     ])
     setRows((dispatches as unknown as Row[]) ?? [])
     setOrders((so as unknown as OrderOption[]) ?? [])
     setLoading(false)
   }
   async function createDispatch(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); if (!tenant?.id || !form.so_id) return
+    e.preventDefault(); if (!businessUnit?.id || !form.so_id) return
     if (!canCreate) { setError('You do not have permission to create dispatch orders.'); return }
     setSaving(true)
     const supabase = getSupabaseClient()
@@ -52,15 +52,15 @@ export default function DispatchPage() {
     }
     let dispatchCode = ''
     try {
-      dispatchCode = (await generateNextCode(tenant.id, 'dispatch_order')).code
+      dispatchCode = (await generateNextCode(businessUnit.id, 'dispatch_order')).code
     } catch (seriesError: any) {
       setSaving(false)
       setError(`${seriesError.message} Configure Number Series in Configuration.`)
       return
     }
-    await supabase.from('dispatch_orders').insert({ tenant_id: tenant.id, do_code: dispatchCode, so_id: form.so_id, customer_id: selected?.customer_id, dispatch_date: form.dispatch_date, vehicle_no: form.vehicle_no || null, driver_name: form.driver_name || null, status: 'draft' })
-    await supabase.from('sales_orders').update({ status: 'dispatched' }).eq('tenant_id', tenant.id).eq('id', form.so_id)
-    setSaving(false); await fetchData(tenant.id)
+    await supabase.from('dispatch_orders').insert({ business_unit_id: businessUnit.id, do_code: dispatchCode, so_id: form.so_id, customer_id: selected?.customer_id, dispatch_date: form.dispatch_date, vehicle_no: form.vehicle_no || null, driver_name: form.driver_name || null, status: 'draft' })
+    await supabase.from('sales_orders').update({ status: 'dispatched' }).eq('business_unit_id', businessUnit.id).eq('id', form.so_id)
+    setSaving(false); await fetchData(businessUnit.id)
   }
 
   const columns: Column<Row>[] = useMemo(() => [
@@ -71,7 +71,7 @@ export default function DispatchPage() {
     { key: 'status', header: 'Status', render: (v) => <Badge variant={STATUS_BADGE[String(v ?? 'draft')] ?? 'default'}>{String(v ?? 'draft')}</Badge> },
   ], [])
 
-  if (!tenant) return <TenantSetupNotice title="Dispatch" description="Select or create a factory before creating dispatch orders." />
+  if (!businessUnit) return <BusinessUnitSetupNotice title="Dispatch" description="Select or create a businessUnit before creating dispatch orders." />
 
   return <>
     <PageHeader title="Dispatch" description="Create minimal dispatch headers from sales orders." />
@@ -90,3 +90,12 @@ export default function DispatchPage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} .form-error{margin:0;color:var(--text-danger)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+
+

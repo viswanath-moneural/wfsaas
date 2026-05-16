@@ -2,9 +2,9 @@
 -- Date: 2026-05-16
 -- Notes:
 -- - Current schema uses roles.role_name, not roles.name.
--- - Factories are stored in public.tenants.
+-- - Operating units are stored in public.business_units.
 -- - This migration adds a separate permissive superadmin policy instead of editing
---   existing tenant/org policies. Supabase/Postgres combines permissive policies with OR.
+--   existing business-unit/org policies. Supabase/Postgres combines permissive policies with OR.
 
 begin;
 
@@ -227,7 +227,7 @@ declare
     'stock_alerts_config',
     'stock_movements',
     'tasks',
-    'tenants',
+    'business_units',
     'user_invitations',
     'user_roles',
     'users',
@@ -273,3 +273,6 @@ begin
 end $$;
 
 commit;
+
+
+

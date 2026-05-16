@@ -2,14 +2,14 @@
 
 ## Product Goal
 
-WFSAAS is a multi-tenant ERP SaaS for small and mid-sized manufacturing and trading businesses. The first target segment is operational businesses such as paper cup factories, distributors, and small manufacturers that need sales, purchases, inventory, production, HR, and reporting in one practical system.
+WFSAAS is a multi-organisation ERP SaaS for small and mid-sized manufacturing and trading businesses. The first target segment is operational businesses such as paper cup business units, distributors, and small manufacturers that need sales, purchases, inventory, production, HR, and reporting in one practical system.
 
-The product should feel simpler than large ERP suites while still preserving ERP discipline: tenant isolation, document numbering, permissions, auditability, transaction status lifecycles, and reliable operational dashboards.
+The product should feel simpler than large ERP suites while still preserving ERP discipline: business unit isolation, document numbering, permissions, auditability, transaction status lifecycles, and reliable operational dashboards.
 
 ## Target Users
 
 - Platform superadmin: WFSAAS product owner/team, manages organisations and platform setup.
-- Organisation owner/admin: customer company owner or administrator, manages factories, users, roles, modules, and master data.
+- Organisation owner/admin: customer company owner or administrator, manages business units, users, roles, modules, and master data.
 - Manager: handles day-to-day sales, purchases, stock, production, and approvals.
 - Accountant: handles invoices, payments, payables, payroll, taxes, and reporting.
 - Operator: enters production, attendance, machine, and stock activity.
@@ -20,7 +20,7 @@ The product should feel simpler than large ERP suites while still preserving ERP
 MVP 1 is the first complete operational vertical:
 
 - Auth and protected app shell.
-- Organisation/factory setup.
+- Organisation/business unit setup.
 - Configuration masters: customers, vendors, products, materials, warehouses, users, roles, modules, and number series.
 - Sales: sales order, dispatch, invoice, customer payment.
 - Purchases: purchase order, GRN, vendor payment.
@@ -40,20 +40,27 @@ MVP 1 is the first complete operational vertical:
 
 ## Success Criteria
 
-MVP 1 is successful when an admin can onboard a company, create a factory, configure required masters and number series, and complete these flows end to end:
+MVP 1 is successful when an admin can onboard a company, create a business unit, configure required masters and number series, and complete these flows end to end:
 
 - Sales order -> dispatch -> invoice -> customer payment.
 - Purchase order -> GRN -> vendor payment.
 - Inventory movement/adjustment -> stock view/dashboard visibility.
 - Role/module permissions affect the UI and protected actions.
-- Tenant A data is isolated from Tenant B data.
+- Business Unit A data is isolated from Business Unit B data.
 - The product is usable on desktop and mobile web for the above flows.
 
 ## Acceptance Checklist
 
-- A superadmin can reach platform configuration without tenant deadlock.
-- An organisation admin can create factories and assign users.
+- A superadmin can reach platform configuration without business unit deadlock.
+- An organisation admin can create business units and assign users.
 - Number series exists for all required transaction documents.
 - Each transaction page has a clear empty state and prerequisite guidance.
-- Dashboard reflects active tenant data.
-- Supabase RLS behavior is verified for tenant isolation and superadmin/platform operations.
+- Dashboard reflects active business unit data.
+- Supabase RLS behavior is verified for business unit isolation and superadmin/platform operations.
+
+
+
+
+
+
+

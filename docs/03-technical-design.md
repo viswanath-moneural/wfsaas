@@ -35,8 +35,8 @@ Server-side Supabase helpers exist in `lib/supabase.server.ts`, but most busines
 - Supabase Auth user.
 - Matching `public.users` row.
 - Organisation context.
-- Available tenants.
-- Active tenant from local storage or fallback tenant.
+- Available business units.
+- Active business unit from local storage or fallback business unit.
 - Enabled organisation modules.
 - Active role and module permissions.
 - Field permissions.
@@ -45,16 +45,16 @@ The context exposes:
 
 - `user`
 - `org`
-- `tenant`
-- `allTenants`
+- `business unit`
+- `business units`
 - `permissions`
-- `switchTenant`
+- `switchBusiness Unit`
 - `refreshAuth`
 - `signOut`
 
 ## Number Series
 
-`lib/numberSeries.ts` provides `generateNextCode(tenantId, entityType)`. It reads active `number_series_config`, increments `current_value`, and builds the next document code using prefix, suffix, separator, financial year, month, and digit padding.
+`lib/numberSeries.ts` provides `generateNextCode(business unitId, entityType)`. It reads active `number_series_config`, increments `current_value`, and builds the next document code using prefix, suffix, separator, financial year, month, and digit padding.
 
 Currently used for:
 
@@ -87,3 +87,10 @@ Current gap:
 - User creation currently inserts into `public.users`; it does not create Supabase Auth credentials by itself.
 - PO/GRN auto-numbering should be aligned with the number-series generator.
 - Live Supabase schema was not introspected by this documentation pass; database details are based on the latest shared schema and local migration files.
+
+
+
+
+
+
+

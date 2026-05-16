@@ -9,7 +9,7 @@ const sections = [
     items: [
       { label: 'Dashboard', href: '/superadmin' },
       { label: 'Organisations', href: '/superadmin/organisations' },
-      { label: 'Factories', href: '/superadmin/factories' },
+      { label: 'Business Units', href: '/superadmin/business-units' },
     ],
   },
   {
@@ -151,3 +151,11 @@ export default function SuperadminSidebar() {
     </aside>
   )
 }
+
+
+
+
+
+
+
+

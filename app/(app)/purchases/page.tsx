@@ -13,7 +13,7 @@ const SECTIONS = [
 export default function PurchasesPage() {
   return (
     <>
-      <PageHeader title="Purchases" description="Manage procure-to-pay for the active factory." />
+      <PageHeader title="Purchases" description="Manage procure-to-pay for the active businessUnit." />
       <section className="grid">
         {SECTIONS.map((section) => (
           <Link href={section.href} key={section.href}>
@@ -34,3 +34,10 @@ export default function PurchasesPage() {
     </>
   )
 }
+
+
+
+
+
+
+

@@ -86,7 +86,7 @@ export const MODULE_REGISTRY: Record<ModuleKey, ModuleDefinition> = {
     key: 'manufacturing',
     label: 'Manufacturing',
     description: 'Work orders, production, BOM, quality',
-    icon: 'Factory',
+    icon: 'BusinessUnit',
     href: '/manufacturing',
     color: '#7e22ce',
     comingSoon: true,
@@ -176,7 +176,7 @@ export const MODULE_REGISTRY: Record<ModuleKey, ModuleDefinition> = {
     adminOnly: true,
     subModules: [
       { key: 'configuration.org',        label: 'Organisation',     href: '/configuration/organisation' },
-      { key: 'configuration.tenants',    label: 'Factories',        href: '/configuration/tenants' },
+      { key: 'configuration.businessUnits',    label: 'Business Units',        href: '/configuration/business-units' },
       { key: 'configuration.users',      label: 'Users',            href: '/configuration/users' },
       { key: 'configuration.roles',      label: 'Roles & Permissions', href: '/configuration/roles' },
       { key: 'configuration.modules',    label: 'Modules',          href: '/configuration/modules' },
@@ -203,3 +203,12 @@ export const SIDEBAR_MODULE_ORDER: ModuleKey[] = [
   'reports',
   'configuration',
 ]
+
+
+
+
+
+
+
+
+

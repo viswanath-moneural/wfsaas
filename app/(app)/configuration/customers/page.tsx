@@ -10,7 +10,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { createCustomer } from '@/app/actions/platform'
 
 interface CustomerRow {
@@ -73,7 +73,7 @@ function normalizePartyModelRows<T extends { parties?: any; contact_roles?: any 
 }
 
 export default function CustomersPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const [rows, setRows] = useState<CustomerRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
@@ -83,20 +83,20 @@ export default function CustomersPage() {
   const { canCreate: canEdit } = usePermissions('configuration')
 
   useEffect(() => {
-    if (!tenant?.id) {
+    if (!businessUnit?.id) {
       setLoading(false)
       return
     }
-    fetchCustomers(tenant.id)
-  }, [tenant?.id])
+    fetchCustomers(businessUnit.id)
+  }, [businessUnit?.id])
 
-  async function fetchCustomers(tenantId: string) {
+  async function fetchCustomers(businessUnitId: string) {
     setLoading(true)
     const supabase = getSupabaseClient()
     const { data, error: fetchError } = await supabase
       .from('customers')
       .select('id, party_id, customer_code, customer_name, company_name, mobile, gst_number, city, state, is_active, parties(party_name, legal_name, phone, gst_number, city, state), contact_roles(role_type, is_primary, contact_persons(name, phone, email, designation))')
-      .eq('tenant_id', tenantId)
+      .eq('business_unit_id', businessUnitId)
       .order('customer_code', { ascending: true })
 
     if (fetchError) setError(fetchError.message)
@@ -106,13 +106,13 @@ export default function CustomersPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!tenant?.id) return
+    if (!businessUnit?.id) return
 
     setSaving(true)
     setError('')
 
     const result = await createCustomer({
-      tenant_id: tenant.id,
+      business_unit_id: businessUnit.id,
       customer_code: form.customer_code.trim(),
       customer_name: form.customer_name.trim(),
       company_name: form.company_name.trim() || null,
@@ -135,7 +135,7 @@ export default function CustomersPage() {
     }
 
     setForm(EMPTY_FORM)
-    await fetchCustomers(tenant.id)
+    await fetchCustomers(businessUnit.id)
   }
 
   const columns: Column<CustomerRow>[] = useMemo(() => [
@@ -156,13 +156,13 @@ export default function CustomersPage() {
     },
   ], [])
 
-  if (!tenant) {
-    return <TenantSetupNotice title="Customers" description="Select or create a factory before creating customer masters." />
+  if (!businessUnit) {
+    return <BusinessUnitSetupNotice title="Customers" description="Select or create a businessUnit before creating customer masters." />
   }
 
   return (
     <>
-      <PageHeader title="Customers" description={`Customers for ${tenant.name}.`} />
+      <PageHeader title="Customers" description={`Customers for ${businessUnit.name}.`} />
 
       <section className="master-layout">
         <Card>
@@ -228,3 +228,12 @@ export default function CustomersPage() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+

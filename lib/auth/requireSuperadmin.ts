@@ -18,7 +18,7 @@ export interface VerifiedSuperadmin {
   appUser: {
     id: string
     org_id: string | null
-    tenant_id: string | null
+    business_unit_id: string | null
     email: string | null
     full_name: string | null
     role: string | null
@@ -26,7 +26,7 @@ export interface VerifiedSuperadmin {
   }
   userId: string
   orgId: string | null
-  tenantId: string | null
+  businessUnitId: string | null
   roleIds: string[]
   roleNames: string[]
 }
@@ -49,7 +49,7 @@ export async function requireSuperadmin(): Promise<VerifiedSuperadmin> {
   const admin = createAdminClient()
   const { data: appUser, error: appUserError } = await admin
     .from('users')
-    .select('id, org_id, tenant_id, email, full_name, role, is_active')
+    .select('id, org_id, business_unit_id, email, full_name, role, is_active')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -87,8 +87,13 @@ export async function requireSuperadmin(): Promise<VerifiedSuperadmin> {
     appUser,
     userId: user.id,
     orgId: appUser.org_id,
-    tenantId: appUser.tenant_id,
+    businessUnitId: appUser.business_unit_id,
     roleIds,
     roleNames,
   }
 }
+
+
+
+
+

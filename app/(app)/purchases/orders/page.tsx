@@ -19,7 +19,7 @@ interface Vendor { id: string; vendor_code: string; vendor_name: string }
 interface PoRow { id: string; po_code: string; po_date: string; expected_date: string | null; status: string | null; vendors: Vendor | null }
 
 export default function PurchaseOrdersPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const { error: notifyError } = useToast()
   const router = useRouter()
   const [rows, setRows] = useState<PoRow[]>([])
@@ -29,46 +29,46 @@ export default function PurchaseOrdersPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const { canCreate } = usePermissions('purchases')
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void fetchData(tenant.id) }, [tenant?.id])
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void fetchData(businessUnit.id) }, [businessUnit?.id])
   useEffect(() => {
     if (!form.vendor_id && vendors[0]?.id) {
       setForm((prev) => ({ ...prev, vendor_id: vendors[0].id }))
     }
   }, [vendors, form.vendor_id])
-  async function fetchData(tenantId: string) {
+  async function fetchData(businessUnitId: string) {
     const supabase = getSupabaseClient()
     try {
-      await seedDefaultNumberSeries(tenantId, ['PO'])
+      await seedDefaultNumberSeries(businessUnitId, ['PO'])
     } catch (seriesError: any) {
       setError(seriesError.message)
     }
     const [{ data: po }, { data: v }] = await Promise.all([
-      supabase.from('purchase_orders').select('id, po_code, po_date, expected_date, status, vendors(id, vendor_code, vendor_name)').eq('tenant_id', tenantId).order('po_date', { ascending: false }),
-      supabase.from('vendors').select('id, vendor_code, vendor_name').eq('tenant_id', tenantId).eq('is_active', true).order('vendor_name', { ascending: true }),
+      supabase.from('purchase_orders').select('id, po_code, po_date, expected_date, status, vendors(id, vendor_code, vendor_name)').eq('business_unit_id', businessUnitId).order('po_date', { ascending: false }),
+      supabase.from('vendors').select('id, vendor_code, vendor_name').eq('business_unit_id', businessUnitId).eq('is_active', true).order('vendor_name', { ascending: true }),
     ])
     setRows((po as unknown as PoRow[]) ?? [])
     setVendors((v as Vendor[]) ?? [])
     setLoading(false)
   }
   async function createPo(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); if (!tenant?.id) return
+    e.preventDefault(); if (!businessUnit?.id) return
     if (!canCreate) { setError('You do not have permission to create purchase orders.'); return }
     if (!form.vendor_id) { setError('Select a vendor before creating a purchase order.'); return }
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
     let poCode = ''
     try {
-      await seedDefaultNumberSeries(tenant.id, ['PO'])
-      poCode = (await generateNextCode(tenant.id, 'PO')).code
+      await seedDefaultNumberSeries(businessUnit.id, ['PO'])
+      poCode = (await generateNextCode(businessUnit.id, 'PO')).code
     } catch (seriesError: any) {
       setSaving(false)
       setError(seriesError.message)
       return
     }
-    const { data, error } = await supabase.from('purchase_orders').insert({ tenant_id: tenant.id, po_code: poCode, vendor_id: form.vendor_id, po_date: form.po_date, expected_date: form.expected_date || null, status: 'draft', notes: form.notes || null, name: poCode }).select('id').single()
+    const { data, error } = await supabase.from('purchase_orders').insert({ business_unit_id: businessUnit.id, po_code: poCode, vendor_id: form.vendor_id, po_date: form.po_date, expected_date: form.expected_date || null, status: 'draft', notes: form.notes || null, name: poCode }).select('id').single()
     setSaving(false)
     if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to create purchase order.'); return }
-    await fetchData(tenant.id)
+    await fetchData(businessUnit.id)
     if (data?.id) router.push(`/purchases/orders/${data.id}`)
   }
   const columns: Column<PoRow>[] = useMemo(() => [
@@ -92,3 +92,11 @@ export default function PurchaseOrdersPage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} .form-error{margin:0;color:var(--text-danger)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+

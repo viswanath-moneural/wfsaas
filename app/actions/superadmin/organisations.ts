@@ -24,17 +24,17 @@ export async function listWithMetrics(): Promise<SuperadminActionResult<any[]>> 
     const verified = await requireSuperadmin()
     await getSuperadminContext(verified)
     const admin = createAdminClient()
-    const [{ data: organisations, error }, { data: factories }, { data: users }, { data: subscriptions }] = await Promise.all([
+    const [{ data: organisations, error }, { data: businessUnits }, { data: users }, { data: subscriptions }] = await Promise.all([
       admin.from('organisations').select('*').order('created_at', { ascending: false }),
-      admin.from('tenants').select('id, org_id'),
+      admin.from('business_units').select('id, org_id'),
       admin.from('users').select('id, org_id'),
       admin.from('org_subscriptions').select('org_id, subscription_plans(plan_code, plan_name), status'),
     ])
 
     if (error) throw error
 
-    const factoryCounts = new Map<string, number>()
-    ;(factories ?? []).forEach((factory: any) => factoryCounts.set(factory.org_id, (factoryCounts.get(factory.org_id) ?? 0) + 1))
+    const businessUnitCounts = new Map<string, number>()
+    ;(businessUnits ?? []).forEach((businessUnit: any) => businessUnitCounts.set(businessUnit.org_id, (businessUnitCounts.get(businessUnit.org_id) ?? 0) + 1))
 
     const userCounts = new Map<string, number>()
     ;(users ?? []).forEach((user: any) => userCounts.set(user.org_id, (userCounts.get(user.org_id) ?? 0) + 1))
@@ -47,7 +47,7 @@ export async function listWithMetrics(): Promise<SuperadminActionResult<any[]>> 
     return ok((organisations ?? []).map((organisation: any) => ({
       ...organisation,
       plan: plans.get(organisation.id) ?? 'Free',
-      factory_count: factoryCounts.get(organisation.id) ?? 0,
+      business_unit_count: businessUnitCounts.get(organisation.id) ?? 0,
       user_count: userCounts.get(organisation.id) ?? 0,
     })))
   } catch (error) {
@@ -73,7 +73,7 @@ async function ensurePlan(admin: ReturnType<typeof createAdminClient>, plan: str
       description: `${plan.trim()} platform plan`,
       monthly_price: 0,
       annual_price: 0,
-      max_tenants: planCode === 'enterprise' ? 999 : planCode === 'pro' ? 10 : 1,
+      max_business_units: planCode === 'enterprise' ? 999 : planCode === 'pro' ? 10 : 1,
       max_operators: planCode === 'enterprise' ? 9999 : planCode === 'pro' ? 100 : 10,
       max_messages: planCode === 'enterprise' ? 999999 : planCode === 'pro' ? 10000 : 1000,
       features: {},
@@ -94,8 +94,8 @@ export async function createWithSetup(input: {
   adminEmail: string
   adminName: string
   adminPassword: string
-}): Promise<SuperadminActionResult<{ organisationId: string; factoryId: string; adminUserId: string }>> {
-  const created: { orgId?: string; factoryId?: string; authUserId?: string; roleId?: string; subscriptionId?: string } = {}
+}): Promise<SuperadminActionResult<{ organisationId: string; businessUnitId: string; adminUserId: string }>> {
+  const created: { orgId?: string; businessUnitId?: string; authUserId?: string; roleId?: string; subscriptionId?: string } = {}
   try {
     const verified = await requireSuperadmin()
     await getSuperadminContext(verified)
@@ -145,19 +145,19 @@ export async function createWithSetup(input: {
     if (subscriptionError) throw subscriptionError
     created.subscriptionId = subscription.id
 
-    const { data: factory, error: factoryError } = await admin
-      .from('tenants')
+    const { data: businessUnit, error: businessUnitError } = await admin
+      .from('business_units')
       .insert({
         org_id: organisation.id,
-        name: `${name} - Primary Factory`,
+        name: `${name} - Primary BusinessUnit`,
         is_active: true,
         created_at: timestamp,
         created_by: verified.userId,
       })
       .select('id')
       .single()
-    if (factoryError) throw factoryError
-    created.factoryId = factory.id
+    if (businessUnitError) throw businessUnitError
+    created.businessUnitId = businessUnit.id
 
     const { data: role, error: roleError } = await admin
       .from('roles')
@@ -186,7 +186,7 @@ export async function createWithSetup(input: {
     const { error: appUserError } = await admin.from('users').insert({
       id: authData.user.id,
       org_id: organisation.id,
-      tenant_id: factory.id,
+      business_unit_id: businessUnit.id,
       full_name: adminName,
       phone: '0000000000',
       role: 'owner',
@@ -227,10 +227,10 @@ export async function createWithSetup(input: {
       tableName: 'organisations',
       recordId: organisation.id,
       action: 'create_with_setup',
-      newData: { organisation, factory_id: factory.id, admin_user_id: authData.user.id, plan: input.plan },
+      newData: { organisation, business_unit_id: businessUnit.id, admin_user_id: authData.user.id, plan: input.plan },
     })
 
-    return ok({ organisationId: organisation.id, factoryId: factory.id, adminUserId: authData.user.id })
+    return ok({ organisationId: organisation.id, businessUnitId: businessUnit.id, adminUserId: authData.user.id })
   } catch (error) {
     const admin = createAdminClient()
     if (created.authUserId) await admin.auth.admin.deleteUser(created.authUserId)
@@ -246,14 +246,14 @@ export async function getDetails(id: string): Promise<SuperadminActionResult<any
     const admin = createAdminClient()
     const [
       { data: organisation, error: orgError },
-      { data: factories },
+      { data: businessUnits },
       { data: users },
       { data: modules },
       { data: auditLog },
       { data: subscription },
     ] = await Promise.all([
       admin.from('organisations').select('*').eq('id', id).single(),
-      admin.from('tenants').select('*').eq('org_id', id).order('created_at', { ascending: false }),
+      admin.from('business_units').select('*').eq('org_id', id).order('created_at', { ascending: false }),
       admin.from('users').select('*, user_roles(role_id, roles(role_name))').eq('org_id', id).order('created_at', { ascending: false }),
       admin.from('org_modules').select('*').eq('org_id', id).order('module_key'),
       admin.from('audit_log').select('*').eq('org_id', id).order('changed_at', { ascending: false }).limit(50),
@@ -262,7 +262,7 @@ export async function getDetails(id: string): Promise<SuperadminActionResult<any
     if (orgError) throw orgError
     return ok({
       organisation: { ...organisation, plan: (subscription as any)?.subscription_plans?.plan_name ?? 'Free' },
-      factories: factories ?? [],
+      businessUnits: businessUnits ?? [],
       users: users ?? [],
       modules: modules ?? [],
       auditLog: auditLog ?? [],
@@ -467,3 +467,14 @@ export async function activate(id: string): Promise<SuperadminActionResult<any>>
     return fail(error)
   }
 }
+
+
+
+
+
+
+
+
+
+
+

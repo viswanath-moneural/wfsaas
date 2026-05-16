@@ -7,7 +7,7 @@ import PageHeader from '@/components/layout/PageHeader'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
@@ -15,7 +15,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { getSupabaseClient } from '@/lib/supabase'
 
 export default function AttendancePage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const { error: notifyError } = useToast()
   const { canCreate } = usePermissions('hr')
   const [rows, setRows] = useState<any[]>([])
@@ -24,12 +24,12 @@ export default function AttendancePage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ employee_id: '', attendance_date: new Date().toISOString().split('T')[0], shift: 'general', status: 'present', in_time: '', out_time: '', notes: '' })
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
-  async function load(tenantId: string) {
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void load(businessUnit.id) }, [businessUnit?.id])
+  async function load(businessUnitId: string) {
     const supabase = getSupabaseClient()
     const [{ data: attData, error: attError }, { data: empData }] = await Promise.all([
-      supabase.from('attendance').select('id, attendance_date, shift, status, in_time, out_time, employees(full_name, employee_code)').eq('tenant_id', tenantId).order('attendance_date', { ascending: false }),
-      supabase.from('employees').select('id, employee_code, full_name').eq('tenant_id', tenantId).eq('is_active', true).order('full_name', { ascending: true }),
+      supabase.from('attendance').select('id, attendance_date, shift, status, in_time, out_time, employees(full_name, employee_code)').eq('business_unit_id', businessUnitId).order('attendance_date', { ascending: false }),
+      supabase.from('employees').select('id, employee_code, full_name').eq('business_unit_id', businessUnitId).eq('is_active', true).order('full_name', { ascending: true }),
     ])
     if (attError) setError(attError.message)
     setRows(attData ?? [])
@@ -38,22 +38,22 @@ export default function AttendancePage() {
   }
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!tenant?.id || !canCreate) return
+    if (!businessUnit?.id || !canCreate) return
     setSaving(true); setError('')
     const supabase = getSupabaseClient()
-    const { data, error } = await supabase.from('attendance').insert({ tenant_id: tenant.id, employee_id: form.employee_id || null, attendance_date: form.attendance_date, shift: form.shift as any, status: form.status, in_time: form.in_time || null, out_time: form.out_time || null, notes: form.notes || null }).select('id').single()
+    const { data, error } = await supabase.from('attendance').insert({ business_unit_id: businessUnit.id, employee_id: form.employee_id || null, attendance_date: form.attendance_date, shift: form.shift as any, status: form.status, in_time: form.in_time || null, out_time: form.out_time || null, notes: form.notes || null }).select('id').single()
     setSaving(false)
     if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to save attendance.'); return }
     if (!data) return
     setForm({ employee_id: '', attendance_date: new Date().toISOString().split('T')[0], shift: 'general', status: 'present', in_time: '', out_time: '', notes: '' })
-    await load(tenant.id)
+    await load(businessUnit.id)
   }
-  if (!tenant) return <TenantSetupNotice title="Attendance" description="Select or create a factory before recording attendance." />
+  if (!businessUnit) return <BusinessUnitSetupNotice title="Attendance" description="Select or create a businessUnit before recording attendance." />
   const columns: Column<any>[] = useMemo(() => [
     { key: 'attendance_date', header: 'Date' }, { key: 'employees', header: 'Employee', render: (_v, r) => `${r.employees?.employee_code ?? ''} ${r.employees?.full_name ?? ''}`.trim() || '-' }, { key: 'shift', header: 'Shift' }, { key: 'status', header: 'Status', render: (v) => <Badge variant="info">{v || '-'}</Badge> }, { key: 'in_time', header: 'In', render: (v) => v || '-' }, { key: 'out_time', header: 'Out', render: (v) => v || '-' },
   ], [])
   return <>
-    <PageHeader title="Attendance" description={`Daily attendance for ${tenant.name}.`} />
+    <PageHeader title="Attendance" description={`Daily attendance for ${businessUnit.name}.`} />
     <section className="layout">
       <Card><h2>Mark Attendance</h2><form onSubmit={create}>
         <label><span>Employee</span><select value={form.employee_id} onChange={(e) => setForm((p) => ({ ...p, employee_id: e.target.value }))} disabled={!canCreate}>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.employee_code} - {employee.full_name}</option>)}</select></label>
@@ -71,3 +71,12 @@ export default function AttendancePage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} select{height:var(--input-height-md)} .form-error{margin:0;color:var(--text-danger)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+
+

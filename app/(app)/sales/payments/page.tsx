@@ -12,13 +12,13 @@ import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { formatMoney } from '@/lib/transactions'
 import { generateNextCode } from '@/lib/numberSeries'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 
 interface PaymentRow { id: string; payment_code: string | null; payment_date: string; amount_paid: number; invoices: { invoice_no: string } | null; customers: { customer_name: string } | null }
 interface InvoiceOption { id: string; invoice_no: string; customer_id: string; status: string | null; customers: { customer_name: string } | null }
 
 export default function CustomerPaymentsPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const router = useRouter()
   const [rows, setRows] = useState<PaymentRow[]>([])
   const [invoices, setInvoices] = useState<InvoiceOption[]>([])
@@ -28,12 +28,12 @@ export default function CustomerPaymentsPage() {
   const [error, setError] = useState('')
   const { canCreate } = usePermissions('sales')
 
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void fetchData(tenant.id) }, [tenant?.id])
-  async function fetchData(tenantId: string) {
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void fetchData(businessUnit.id) }, [businessUnit?.id])
+  async function fetchData(businessUnitId: string) {
     const supabase = getSupabaseClient()
     const [{ data: pay }, { data: inv }] = await Promise.all([
-      supabase.from('customer_payments').select('id, payment_code, payment_date, amount_paid, invoices(invoice_no), customers(customer_name)').eq('tenant_id', tenantId).order('payment_date', { ascending: false }),
-      supabase.from('invoices').select('id, invoice_no, customer_id, status, customers(customer_name)').eq('tenant_id', tenantId).order('invoice_date', { ascending: false }),
+      supabase.from('customer_payments').select('id, payment_code, payment_date, amount_paid, invoices(invoice_no), customers(customer_name)').eq('business_unit_id', businessUnitId).order('payment_date', { ascending: false }),
+      supabase.from('invoices').select('id, invoice_no, customer_id, status, customers(customer_name)').eq('business_unit_id', businessUnitId).order('invoice_date', { ascending: false }),
     ])
     setRows((pay as unknown as PaymentRow[]) ?? [])
     setInvoices((inv as unknown as InvoiceOption[]) ?? [])
@@ -42,7 +42,7 @@ export default function CustomerPaymentsPage() {
 
   async function createPayment(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!tenant?.id || !form.invoice_id) return
+    if (!businessUnit?.id || !form.invoice_id) return
     if (!canCreate) {
       setError('You do not have permission to record customer payments.')
       return
@@ -57,13 +57,13 @@ export default function CustomerPaymentsPage() {
     }
     let paymentCode = ''
     try {
-      paymentCode = (await generateNextCode(tenant.id, 'customer_payment')).code
+      paymentCode = (await generateNextCode(businessUnit.id, 'customer_payment')).code
     } catch (seriesError: any) {
       setSaving(false)
       setError(`${seriesError.message} Configure Number Series in Configuration.`)
       return
     }
-    await supabase.from('customer_payments').insert({ tenant_id: tenant.id, payment_code: paymentCode, invoice_id: form.invoice_id, customer_id: selected?.customer_id, payment_date: form.payment_date, amount_paid: Number(form.amount_paid), payment_mode: form.payment_mode })
+    await supabase.from('customer_payments').insert({ business_unit_id: businessUnit.id, payment_code: paymentCode, invoice_id: form.invoice_id, customer_id: selected?.customer_id, payment_date: form.payment_date, amount_paid: Number(form.amount_paid), payment_mode: form.payment_mode })
     const { data: allPayments } = await supabase.from('customer_payments').select('amount_paid').eq('invoice_id', form.invoice_id)
     const paid = (allPayments ?? []).reduce((sum: number, row: any) => sum + Number(row.amount_paid ?? 0), 0)
     const { data: invoice } = await supabase.from('invoices').select('total_amount').eq('id', form.invoice_id).single()
@@ -71,7 +71,7 @@ export default function CustomerPaymentsPage() {
     const status = paid >= invoiceTotal ? 'paid' : 'partial'
     await supabase.from('invoices').update({ status }).eq('id', form.invoice_id)
     setSaving(false)
-    await fetchData(tenant.id)
+    await fetchData(businessUnit.id)
   }
 
   const columns: Column<PaymentRow>[] = useMemo(() => [
@@ -82,7 +82,7 @@ export default function CustomerPaymentsPage() {
     { key: 'amount_paid', header: 'Amount', align: 'right', render: (v) => formatMoney(Number(v ?? 0)) },
   ], [])
 
-  if (!tenant) return <TenantSetupNotice title="Customer Payments" description="Select or create a factory before recording payments." />
+  if (!businessUnit) return <BusinessUnitSetupNotice title="Customer Payments" description="Select or create a businessUnit before recording payments." />
 
   return <>
     <PageHeader title="Customer Payments" description="Track receipts against sales invoices." />
@@ -100,3 +100,12 @@ export default function CustomerPaymentsPage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} .form-error{margin:0;color:var(--text-danger)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+
+

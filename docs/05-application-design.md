@@ -27,7 +27,7 @@ WFSAAS is a protected ERP web application with auth pages outside the shell and 
 ### Configuration
 
 - `/configuration/organisation`
-- `/configuration/tenants`
+- `/configuration/business-units`
 - `/configuration/users`
 - `/configuration/roles`
 - `/configuration/modules`
@@ -83,14 +83,14 @@ WFSAAS is a protected ERP web application with auth pages outside the shell and 
 - List/create pages: left-side form and right-side data table on desktop.
 - Detail pages: document header, status controls, line-item tables.
 - Master pages: create form plus master list.
-- Tenant-blocked pages: `TenantSetupNotice` with links to factory setup/select flow.
+- Business Unit-blocked pages: `Business UnitSetupNotice` with links to business unit setup/select flow.
 - Dashboard: KPI cards plus recent movement/payment tables.
 
 ## Current UI Foundation
 
 - `AppShell`: layout wrapper with sidebar, top bar, content region, and mobile nav.
 - `Sidebar`: desktop module navigation.
-- `TopBar`: organisation/factory context, factory switcher, create-first-factory CTA, sign out.
+- `TopBar`: organisation/business unit context, business unit switcher, create-first-business unit CTA, sign out.
 - `MobileNav`: bottom mobile navigation for key modules.
 - `PageHeader`: consistent title, description, and actions.
 - `DataTable`: reusable table with loading/empty/search behavior.
@@ -103,7 +103,7 @@ The current UI includes responsive grids and a mobile bottom nav. Main expectati
 - Forms collapse to single-column.
 - Module grids collapse to one column.
 - Bottom navigation exposes dashboard, sales, purchases, inventory, and configuration.
-- Top-bar tenant selector is hidden on small screens, which needs follow-up UX for factory switching on mobile.
+- Top-bar business unit selector is hidden on small screens, which needs follow-up UX for business unit switching on mobile.
 - Data tables need continued hardening for horizontal overflow and scanability on small screens.
 
 ## UX Gaps
@@ -113,3 +113,12 @@ The current UI includes responsive grids and a mobile bottom nav. Main expectati
 - User creation needs clearer distinction between app user row and Supabase Auth credential.
 - Purchase and GRN create forms should use auto-numbering like sales documents.
 - CRM/HR pages are basic and need detail/edit flows before they are production-complete.
+
+
+
+
+
+
+
+
+

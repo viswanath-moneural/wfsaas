@@ -24,7 +24,7 @@ export default function OrganisationsClient({ organisations }: { organisations: 
   const [status, setStatus] = useState('all')
   const [page, setPage] = useState(1)
   const [panelOpen, setPanelOpen] = useState(false)
-  const [result, setResult] = useState<{ organisationId: string; factoryId: string; adminUserId: string } | null>(null)
+  const [result, setResult] = useState<{ organisationId: string; businessUnitId: string; adminUserId: string } | null>(null)
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
   const [form, setForm] = useState({
@@ -91,7 +91,7 @@ export default function OrganisationsClient({ organisations }: { organisations: 
       <div className="org-page__header">
         <div>
           <h1>Organisations</h1>
-          <p>Manage customer companies, subscription plans, factories, users, and module access.</p>
+          <p>Manage customer companies, subscription plans, businessUnits, users, and module access.</p>
         </div>
         <Button onClick={() => setPanelOpen(true)}>New Organisation</Button>
       </div>
@@ -130,7 +130,7 @@ export default function OrganisationsClient({ organisations }: { organisations: 
               <th>Slug</th>
               <th>Plan</th>
               <th>Status</th>
-              <th>Factory Count</th>
+              <th>BusinessUnit Count</th>
               <th>User Count</th>
               <th>Created Date</th>
               <th>Actions</th>
@@ -143,7 +143,7 @@ export default function OrganisationsClient({ organisations }: { organisations: 
                 <td>{row.slug}</td>
                 <td>{row.plan}</td>
                 <td><Badge variant={row.is_active ? 'success' : 'danger'}>{row.is_active ? 'Active' : 'Suspended'}</Badge></td>
-                <td>{row.factory_count}</td>
+                <td>{row.business_unit_count}</td>
                 <td>{row.user_count}</td>
                 <td>{row.created_at ? new Date(row.created_at).toLocaleDateString('en-IN') : '-'}</td>
                 <td><Link className="text-link" href={`/superadmin/organisations/${row.id}`}>Open</Link></td>
@@ -207,3 +207,13 @@ export default function OrganisationsClient({ organisations }: { organisations: 
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+

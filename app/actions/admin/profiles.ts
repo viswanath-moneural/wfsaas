@@ -211,3 +211,8 @@ export async function updatePermissions(profile_id: string, permissions: any[]):
 }
 
 export { deleteProfile as delete }
+
+
+
+
+

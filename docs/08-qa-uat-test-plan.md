@@ -6,7 +6,7 @@
 - Supabase project with latest migrations applied.
 - At least one platform superadmin.
 - At least one organisation.
-- At least one factory/tenant.
+- At least one business unit/business unit.
 - Required number series configured.
 - Seed masters: customer, vendor, product, material, warehouse.
 
@@ -15,17 +15,17 @@
 1. Login as platform superadmin.
 2. Open Configuration -> Organisation.
 3. Create a new organisation.
-4. Open Configuration -> Factories.
-5. Create first factory.
-6. Confirm tenant selector shows the factory.
-7. Confirm configuration pages are no longer blocked by missing tenant context.
+4. Open Configuration -> Business Units.
+5. Create first business unit.
+6. Confirm business unit selector shows the business unit.
+7. Confirm configuration pages are no longer blocked by missing business unit context.
 
 Expected result: superadmin can create and manage platform records without RLS errors.
 
-## Organisation and Factory Setup
+## Organisation and Business Unit Setup
 
 1. Create organisation settings.
-2. Create factory.
+2. Create business unit.
 3. Create warehouse.
 4. Create customer, vendor, product, and material.
 5. Configure number series for:
@@ -43,7 +43,7 @@ Expected result: all transaction prerequisites are available.
 
 1. Create role.
 2. Enable modules.
-3. Create user and assign role/factory.
+3. Create user and assign role/business unit.
 4. Login as user.
 5. Verify allowed modules show and restricted modules/actions are hidden or disabled.
 
@@ -84,18 +84,18 @@ Expected result: PO -> GRN -> vendor payment flow completes and respects statuse
 5. Verify movement and adjustment lists.
 6. Verify stock views and dashboard indicators.
 
-Expected result: stock activity is visible and tenant-scoped.
+Expected result: stock activity is visible and business-unit-scoped.
 
-## Multi-Tenant Isolation
+## Multi-Business Unit Isolation
 
-1. Create two factories under one organisation.
+1. Create two business units under one organisation.
 2. Create different customer/vendor/product/material data in each.
-3. Switch tenant.
-4. Verify each tenant sees only its own data.
-5. Login as a tenant-scoped non-admin user.
-6. Attempt direct navigation to records from another tenant.
+3. Switch business unit.
+4. Verify each business unit sees only its own data.
+5. Login as a business-unit-scoped non-admin user.
+6. Attempt direct navigation to records from another business unit.
 
-Expected result: cross-tenant data is not readable or writable.
+Expected result: cross-business unit data is not readable or writable.
 
 ## Mobile Web Smoke Test
 
@@ -116,4 +116,11 @@ Expected result: core flows are usable without layout overlap.
 - Public WhatsApp webhook remains reachable.
 - Middleware protects app pages.
 - Vercel build passes.
-- Empty states render when no tenant or no data exists.
+- Empty states render when no business unit or no data exists.
+
+
+
+
+
+
+

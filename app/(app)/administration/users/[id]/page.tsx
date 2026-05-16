@@ -18,3 +18,8 @@ export default async function AdministrationUserDetailPage({ params }: { params:
 
   return <UserDetailClient initialData={result.data} />
 }
+
+
+
+
+

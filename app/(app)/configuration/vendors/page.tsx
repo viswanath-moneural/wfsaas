@@ -10,7 +10,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { createVendor } from '@/app/actions/platform'
 
 interface VendorRow {
@@ -67,7 +67,7 @@ function normalizePartyModelRows<T extends { parties?: any; contact_roles?: any 
 }
 
 export default function VendorsPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const [rows, setRows] = useState<VendorRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
@@ -77,20 +77,20 @@ export default function VendorsPage() {
   const { canCreate: canEdit } = usePermissions('configuration')
 
   useEffect(() => {
-    if (!tenant?.id) {
+    if (!businessUnit?.id) {
       setLoading(false)
       return
     }
-    fetchVendors(tenant.id)
-  }, [tenant?.id])
+    fetchVendors(businessUnit.id)
+  }, [businessUnit?.id])
 
-  async function fetchVendors(tenantId: string) {
+  async function fetchVendors(businessUnitId: string) {
     setLoading(true)
     const supabase = getSupabaseClient()
     const { data, error: fetchError } = await supabase
       .from('vendors')
       .select('id, party_id, vendor_code, vendor_name, phone_number, gst_number, notes, is_active, parties(party_name, legal_name, phone, gst_number), contact_roles(role_type, is_primary, contact_persons(name, phone, email, designation))')
-      .eq('tenant_id', tenantId)
+      .eq('business_unit_id', businessUnitId)
       .order('vendor_code', { ascending: true })
 
     if (fetchError) setError(fetchError.message)
@@ -100,13 +100,13 @@ export default function VendorsPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!tenant?.id) return
+    if (!businessUnit?.id) return
 
     setSaving(true)
     setError('')
 
     const result = await createVendor({
-      tenant_id: tenant.id,
+      business_unit_id: businessUnit.id,
       vendor_code: form.vendor_code.trim(),
       vendor_name: form.vendor_name.trim(),
       phone_number: form.phone_number.trim() || null,
@@ -127,7 +127,7 @@ export default function VendorsPage() {
     }
 
     setForm(EMPTY_FORM)
-    await fetchVendors(tenant.id)
+    await fetchVendors(businessUnit.id)
   }
 
   const columns: Column<VendorRow>[] = useMemo(() => [
@@ -147,13 +147,13 @@ export default function VendorsPage() {
     },
   ], [])
 
-  if (!tenant) {
-    return <TenantSetupNotice title="Vendors" description="Select or create a factory before creating vendor masters." />
+  if (!businessUnit) {
+    return <BusinessUnitSetupNotice title="Vendors" description="Select or create a businessUnit before creating vendor masters." />
   }
 
   return (
     <>
-      <PageHeader title="Vendors" description={`Vendors for ${tenant.name}.`} />
+      <PageHeader title="Vendors" description={`Vendors for ${businessUnit.name}.`} />
 
       <section className="master-layout">
         <Card>
@@ -217,3 +217,12 @@ export default function VendorsPage() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+

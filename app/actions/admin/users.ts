@@ -13,7 +13,7 @@ export async function getAll(org_id?: string): Promise<AdminActionResult<any[]>>
   try {
     const actor = await requireOrgAdmin()
     const admin = createAdminClient()
-    let query = admin.from('users').select('*, role:roles(*), profile:profiles(*), factory:factories(*)').order('created_at', { ascending: false })
+    let query = admin.from('users').select('*, role:roles(*), profile:profiles(*), businessUnit:business_units(*)').order('created_at', { ascending: false })
     if (org_id) query = query.eq('org_id', org_id)
     else if (!actor.is_superadmin) query = query.eq('org_id', actor.org_id ?? '')
     const { data, error } = await query
@@ -32,7 +32,7 @@ export async function getLookups(): Promise<AdminActionResult<any>> {
 
     const [
       { data: organisations, error: orgError },
-      { data: factories, error: factoryError },
+      { data: businessUnits, error: businessUnitError },
       { data: roles, error: roleError },
       { data: profiles, error: profileError },
       { data: permissionSets, error: setError },
@@ -41,8 +41,8 @@ export async function getLookups(): Promise<AdminActionResult<any>> {
         ? admin.from('organisations').select('*').order('name')
         : admin.from('organisations').select('*').eq('id', actor.org_id ?? '').order('name'),
       orgFilter
-        ? admin.from('factories').select('*').eq('org_id', orgFilter).order('name')
-        : admin.from('factories').select('*').order('name'),
+        ? admin.from('business_units').select('*').eq('org_id', orgFilter).order('name')
+        : admin.from('business_units').select('*').order('name'),
       orgFilter
         ? admin.from('roles').select('*').or(`org_id.eq.${orgFilter},org_id.is.null`).order('label')
         : admin.from('roles').select('*').order('label'),
@@ -55,7 +55,7 @@ export async function getLookups(): Promise<AdminActionResult<any>> {
     ])
 
     if (orgError) throw orgError
-    if (factoryError) throw factoryError
+    if (businessUnitError) throw businessUnitError
     if (roleError) throw roleError
     if (profileError) throw profileError
     if (setError) throw setError
@@ -63,7 +63,7 @@ export async function getLookups(): Promise<AdminActionResult<any>> {
     return ok({
       currentUser: actor,
       organisations: organisations ?? [],
-      factories: factories ?? [],
+      businessUnits: businessUnits ?? [],
       roles: roles ?? [],
       profiles: profiles ?? [],
       permissionSets: permissionSets ?? [],
@@ -77,7 +77,7 @@ export async function getById(id: string): Promise<AdminActionResult<any>> {
   try {
     const actor = await requireOrgAdmin()
     const admin = createAdminClient()
-    const { data, error } = await admin.from('users').select('*, role:roles(*), profile:profiles(*), factory:factories(*)').eq('id', id).single()
+    const { data, error } = await admin.from('users').select('*, role:roles(*), profile:profiles(*), businessUnit:business_units(*)').eq('id', id).single()
     if (error) throw error
     assertAccess(actor, data.org_id)
     return ok(data)
@@ -92,19 +92,19 @@ export async function getDetail(id: string): Promise<AdminActionResult<any>> {
     const admin = createAdminClient()
     const { data: user, error } = await admin
       .from('users')
-      .select('*, role:roles(*), profile:profiles(*), factory:factories(*), organisation:organisations(*)')
+      .select('*, role:roles(*), profile:profiles(*), businessUnit:business_units(*), organisation:organisations(*)')
       .eq('id', id)
       .single()
     if (error) throw error
     assertAccess(actor, user.org_id)
 
     const [
-      { data: factoryAccess, error: accessError },
+      { data: businessUnitAccess, error: accessError },
       { data: assignedSets, error: setError },
       { data: auditLog, error: auditError },
       lookups,
     ] = await Promise.all([
-      admin.from('user_factory_access').select('*, factories(*)').eq('user_id', id).order('created_at', { ascending: false }),
+      admin.from('user_business_unit_access').select('*, business_units(*)').eq('user_id', id).order('created_at', { ascending: false }),
       admin.from('user_permission_sets').select('*, permission_sets(*)').eq('user_id', id).order('assigned_at', { ascending: false }),
       admin.from('audit_log').select('*').or(`actor_id.eq.${id},entity_id.eq.${id}`).order('created_at', { ascending: false }).limit(50),
       getLookups(),
@@ -117,11 +117,11 @@ export async function getDetail(id: string): Promise<AdminActionResult<any>> {
 
     return ok({
       user,
-      factoryAccess: factoryAccess ?? [],
+      businessUnitAccess: businessUnitAccess ?? [],
       assignedPermissionSets: assignedSets ?? [],
       permissions: Object.values(permissions),
       auditLog: auditLog ?? [],
-      lookups: lookups.data ?? { organisations: [], factories: [], roles: [], profiles: [], permissionSets: [] },
+      lookups: lookups.data ?? { organisations: [], businessUnits: [], roles: [], profiles: [], permissionSets: [] },
       currentUser: actor,
     })
   } catch (error) {
@@ -131,7 +131,7 @@ export async function getDetail(id: string): Promise<AdminActionResult<any>> {
 
 export async function create(payload: {
   org_id: string
-  factory_id?: string | null
+  business_unit_id?: string | null
   role_id?: string | null
   profile_id?: string | null
   first_name: string
@@ -141,7 +141,7 @@ export async function create(payload: {
   designation?: string | null
   department?: string | null
   password?: string
-  factory_ids?: string[]
+  business_unit_ids?: string[]
   is_active?: boolean
   password_reset_required?: boolean
 }): Promise<AdminActionResult<any>> {
@@ -166,7 +166,7 @@ export async function create(payload: {
     const { data, error } = await admin.from('users').insert({
       id: authUser.user.id,
       org_id: payload.org_id,
-      factory_id: payload.factory_id ?? null,
+      business_unit_id: payload.business_unit_id ?? null,
       role_id: payload.role_id ?? null,
       profile_id: payload.profile_id ?? null,
       first_name: payload.first_name.trim(),
@@ -182,12 +182,12 @@ export async function create(payload: {
     }).select('*').single()
     if (error) throw error
 
-    const factoryIds = Array.from(new Set([payload.factory_id, ...(payload.factory_ids ?? [])].filter(Boolean))) as string[]
-    if (factoryIds.length) {
-      const { error: accessError } = await admin.from('user_factory_access').insert(factoryIds.map((factoryId) => ({
+    const businessUnitIds = Array.from(new Set([payload.business_unit_id, ...(payload.business_unit_ids ?? [])].filter(Boolean))) as string[]
+    if (businessUnitIds.length) {
+      const { error: accessError } = await admin.from('user_business_unit_access').insert(businessUnitIds.map((businessUnitId) => ({
         user_id: data.id,
-        factory_id: factoryId,
-        is_default: factoryId === payload.factory_id,
+        business_unit_id: businessUnitId,
+        is_default: businessUnitId === payload.business_unit_id,
         created_at: timestamp,
       })))
       if (accessError) throw accessError
@@ -293,71 +293,71 @@ export async function removePermissionSet(user_id: string, permission_set_id: st
   }
 }
 
-export async function addFactoryAccess(user_id: string, factory_id: string, is_default = false): Promise<AdminActionResult<any>> {
+export async function addBusinessUnitAccess(user_id: string, business_unit_id: string, is_default = false): Promise<AdminActionResult<any>> {
   try {
     const actor = await requireOrgAdmin()
     const admin = createAdminClient()
-    const [{ data: user, error: userError }, { data: factory, error: factoryError }] = await Promise.all([
+    const [{ data: user, error: userError }, { data: businessUnit, error: businessUnitError }] = await Promise.all([
       admin.from('users').select('id, org_id').eq('id', user_id).single(),
-      admin.from('factories').select('*').eq('id', factory_id).single(),
+      admin.from('business_units').select('*').eq('id', business_unit_id).single(),
     ])
     if (userError) throw userError
-    if (factoryError) throw factoryError
+    if (businessUnitError) throw businessUnitError
     assertAccess(actor, user.org_id)
-    if (user.org_id !== factory.org_id) throw new Error('Factory must belong to the user organisation.')
+    if (user.org_id !== businessUnit.org_id) throw new Error('BusinessUnit must belong to the user organisation.')
 
     if (is_default) {
-      await admin.from('user_factory_access').update({ is_default: false }).eq('user_id', user_id)
-      await admin.from('users').update({ factory_id, updated_at: nowIso() }).eq('id', user_id)
+      await admin.from('user_business_unit_access').update({ is_default: false }).eq('user_id', user_id)
+      await admin.from('users').update({ business_unit_id, updated_at: nowIso() }).eq('id', user_id)
     }
 
     const { data, error } = await admin
-      .from('user_factory_access')
-      .upsert({ user_id, factory_id, is_default, created_at: nowIso() }, { onConflict: 'user_id,factory_id' })
-      .select('*, factories(*)')
+      .from('user_business_unit_access')
+      .upsert({ user_id, business_unit_id, is_default, created_at: nowIso() }, { onConflict: 'user_id,business_unit_id' })
+      .select('*, business_units(*)')
       .single()
     if (error) throw error
-    await logMutation({ actor, org_id: user.org_id, action: 'user.factory_access.add', entity_type: 'user', entity_id: user_id, entity_name: user_id, after: data })
+    await logMutation({ actor, org_id: user.org_id, action: 'user.businessUnit_access.add', entity_type: 'user', entity_id: user_id, entity_name: user_id, after: data })
     return ok(data)
   } catch (error) {
     return fail(error)
   }
 }
 
-export async function removeFactoryAccess(user_id: string, factory_id: string): Promise<AdminActionResult<any>> {
+export async function removeBusinessUnitAccess(user_id: string, business_unit_id: string): Promise<AdminActionResult<any>> {
   try {
     const actor = await requireOrgAdmin()
     const admin = createAdminClient()
-    const { data: user, error: userError } = await admin.from('users').select('id, org_id, factory_id').eq('id', user_id).single()
+    const { data: user, error: userError } = await admin.from('users').select('id, org_id, business_unit_id').eq('id', user_id).single()
     if (userError) throw userError
     assertAccess(actor, user.org_id)
-    const { data: before } = await admin.from('user_factory_access').select('*').eq('user_id', user_id).eq('factory_id', factory_id).maybeSingle()
-    const { error } = await admin.from('user_factory_access').delete().eq('user_id', user_id).eq('factory_id', factory_id)
+    const { data: before } = await admin.from('user_business_unit_access').select('*').eq('user_id', user_id).eq('business_unit_id', business_unit_id).maybeSingle()
+    const { error } = await admin.from('user_business_unit_access').delete().eq('user_id', user_id).eq('business_unit_id', business_unit_id)
     if (error) throw error
-    if (user.factory_id === factory_id) await admin.from('users').update({ factory_id: null, updated_at: nowIso() }).eq('id', user_id)
-    await logMutation({ actor, org_id: user.org_id, action: 'user.factory_access.remove', entity_type: 'user', entity_id: user_id, entity_name: user_id, before })
-    return ok({ user_id, factory_id })
+    if (user.business_unit_id === business_unit_id) await admin.from('users').update({ business_unit_id: null, updated_at: nowIso() }).eq('id', user_id)
+    await logMutation({ actor, org_id: user.org_id, action: 'user.businessUnit_access.remove', entity_type: 'user', entity_id: user_id, entity_name: user_id, before })
+    return ok({ user_id, business_unit_id })
   } catch (error) {
     return fail(error)
   }
 }
 
-export async function setDefaultFactory(user_id: string, factory_id: string): Promise<AdminActionResult<any>> {
+export async function setDefaultBusinessUnit(user_id: string, business_unit_id: string): Promise<AdminActionResult<any>> {
   try {
     const actor = await requireOrgAdmin()
     const admin = createAdminClient()
     const { data: user, error: userError } = await admin.from('users').select('*').eq('id', user_id).single()
     if (userError) throw userError
     assertAccess(actor, user.org_id)
-    await admin.from('user_factory_access').update({ is_default: false }).eq('user_id', user_id)
+    await admin.from('user_business_unit_access').update({ is_default: false }).eq('user_id', user_id)
     const { data, error } = await admin
-      .from('user_factory_access')
-      .upsert({ user_id, factory_id, is_default: true, created_at: nowIso() }, { onConflict: 'user_id,factory_id' })
-      .select('*, factories(*)')
+      .from('user_business_unit_access')
+      .upsert({ user_id, business_unit_id, is_default: true, created_at: nowIso() }, { onConflict: 'user_id,business_unit_id' })
+      .select('*, business_units(*)')
       .single()
     if (error) throw error
-    await admin.from('users').update({ factory_id, updated_at: nowIso() }).eq('id', user_id)
-    await logMutation({ actor, org_id: user.org_id, action: 'user.factory_access.default', entity_type: 'user', entity_id: user_id, entity_name: user.email, before: { factory_id: user.factory_id }, after: { factory_id } })
+    await admin.from('users').update({ business_unit_id, updated_at: nowIso() }).eq('id', user_id)
+    await logMutation({ actor, org_id: user.org_id, action: 'user.businessUnit_access.default', entity_type: 'user', entity_id: user_id, entity_name: user.email, before: { business_unit_id: user.business_unit_id }, after: { business_unit_id } })
     return ok(data)
   } catch (error) {
     return fail(error)
@@ -365,3 +365,13 @@ export async function setDefaultFactory(user_id: string, factory_id: string): Pr
 }
 
 export { deleteUser as delete }
+
+
+
+
+
+
+
+
+
+

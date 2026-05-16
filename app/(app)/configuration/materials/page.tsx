@@ -10,7 +10,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { createMaterial } from '@/app/actions/platform'
 
 interface MaterialRow {
@@ -30,7 +30,7 @@ const EMPTY_FORM = {
 }
 
 export default function MaterialsPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const [rows, setRows] = useState<MaterialRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
@@ -40,20 +40,20 @@ export default function MaterialsPage() {
   const { canCreate: canEdit } = usePermissions('configuration')
 
   useEffect(() => {
-    if (!tenant?.id) {
+    if (!businessUnit?.id) {
       setLoading(false)
       return
     }
-    fetchMaterials(tenant.id)
-  }, [tenant?.id])
+    fetchMaterials(businessUnit.id)
+  }, [businessUnit?.id])
 
-  async function fetchMaterials(tenantId: string) {
+  async function fetchMaterials(businessUnitId: string) {
     setLoading(true)
     const supabase = getSupabaseClient()
     const { data, error: fetchError } = await supabase
       .from('materials')
       .select('id, material_code, material_name, unit, reorder_level, is_active')
-      .eq('tenant_id', tenantId)
+      .eq('business_unit_id', businessUnitId)
       .order('material_code', { ascending: true })
 
     if (fetchError) setError(fetchError.message)
@@ -63,13 +63,13 @@ export default function MaterialsPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!tenant?.id) return
+    if (!businessUnit?.id) return
 
     setSaving(true)
     setError('')
 
     const result = await createMaterial({
-      tenant_id: tenant.id,
+      business_unit_id: businessUnit.id,
       material_code: form.material_code.trim(),
       material_name: form.material_name.trim(),
       unit: form.unit.trim(),
@@ -84,7 +84,7 @@ export default function MaterialsPage() {
     }
 
     setForm(EMPTY_FORM)
-    await fetchMaterials(tenant.id)
+    await fetchMaterials(businessUnit.id)
   }
 
   const columns: Column<MaterialRow>[] = useMemo(() => [
@@ -99,13 +99,13 @@ export default function MaterialsPage() {
     },
   ], [])
 
-  if (!tenant) {
-    return <TenantSetupNotice title="Materials" description="Select or create a factory before creating material masters." />
+  if (!businessUnit) {
+    return <BusinessUnitSetupNotice title="Materials" description="Select or create a businessUnit before creating material masters." />
   }
 
   return (
     <>
-      <PageHeader title="Materials" description={`Raw materials for ${tenant.name}.`} />
+      <PageHeader title="Materials" description={`Raw materials for ${businessUnit.name}.`} />
 
       <section className="master-layout">
         <Card>
@@ -193,3 +193,12 @@ export default function MaterialsPage() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+

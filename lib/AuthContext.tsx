@@ -13,9 +13,6 @@ import { getSupabaseClient } from '@/lib/supabase'
 import { isPrivilegedRole } from '@/lib/auth/isPrivilegedRole'
 import type { UserPermissions } from '@/lib/permissions'
 
-// ----------------------------------------------------------
-// Types
-// ----------------------------------------------------------
 export interface Organisation {
   id: string
   name: string
@@ -25,7 +22,7 @@ export interface Organisation {
   is_active: boolean
 }
 
-export interface Tenant {
+export interface BusinessUnit {
   id: string
   name: string
   phone: string
@@ -41,46 +38,40 @@ export interface CurrentUser {
   role: string
   is_active: boolean
   org_id: string
-  tenant_id: string | null
+  business_unit_id: string | null
 }
 
 export interface AuthState {
-  user:        CurrentUser | null
-  org:         Organisation | null
+  user: CurrentUser | null
+  org: Organisation | null
   allOrganisations: Organisation[]
-  tenant:      Tenant | null
-  allTenants:  Tenant[]          // All tenants in this org (for switcher)
+  businessUnit: BusinessUnit | null
+  businessUnits: BusinessUnit[]
   permissions: UserPermissions | null
-  isLoading:   boolean
+  isLoading: boolean
   isAuthenticated: boolean
 }
 
 interface AuthContextValue extends AuthState {
-  signOut:       () => Promise<void>
-  switchTenant:  (tenantId: string) => Promise<void>
+  signOut: () => Promise<void>
+  switchBusinessUnit: (businessUnitId: string) => Promise<void>
   switchOrgContext: (orgId: string) => Promise<void>
-  refreshAuth:   () => Promise<void>
+  refreshAuth: () => Promise<void>
 }
 
-// ----------------------------------------------------------
-// Context
-// ----------------------------------------------------------
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-// ----------------------------------------------------------
-// Provider
-// ----------------------------------------------------------
 export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [state, setState] = useState<AuthState>({
-    user:            null,
-    org:             null,
+    user: null,
+    org: null,
     allOrganisations: [],
-    tenant:          null,
-    allTenants:      [],
-    permissions:     null,
-    isLoading:       true,
+    businessUnit: null,
+    businessUnits: [],
+    permissions: null,
+    isLoading: true,
     isAuthenticated: false,
   })
 
@@ -94,7 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return
 
     try {
-      // 1. Load user record
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
@@ -107,7 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isBasePrivileged = isPrivilegedRole(baseRole)
       const isBaseSuperadmin = baseRole === 'superadmin'
 
-      // 2. Load organisation (privileged fallback if org_id is missing)
       let orgData: Organisation | null = null
       let allOrganisations: Organisation[] = []
 
@@ -154,42 +143,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // 3. Load tenants for this org
       const effectiveOrgId = (orgData?.id ?? userData.org_id) as string | null
 
-      const { data: tenantsData } = await supabase
-        .from('tenants')
+      const { data: businessUnitsData } = await supabase
+        .from('business_units')
         .select('*')
         .eq('org_id', effectiveOrgId ?? '')
         .eq('is_active', true)
         .order('name')
 
-      const allTenants = tenantsData ?? []
+      const businessUnits = (businessUnitsData ?? []) as BusinessUnit[]
 
-      // 4. Determine active tenant
-      const storedTenantId = typeof window !== 'undefined'
-        ? localStorage.getItem(`active_tenant_${effectiveOrgId ?? userData.org_id}`)
+      const storedBusinessUnitId = typeof window !== 'undefined'
+        ? localStorage.getItem(`active_business_unit_${effectiveOrgId ?? userData.org_id}`)
         : null
 
-      const activeTenant = allTenants.find(t =>
-        t.id === (storedTenantId ?? userData.tenant_id)
-      ) ?? allTenants[0] ?? null
+      const activeBusinessUnit = businessUnits.find((item) =>
+        item.id === (storedBusinessUnitId ?? userData.business_unit_id)
+      ) ?? businessUnits[0] ?? null
 
-      // 5. Load enabled modules for this org
       const { data: modulesData } = await supabase
         .from('org_modules')
         .select('module_key, is_enabled')
         .eq('org_id', effectiveOrgId ?? '')
 
       const enabledModules = (modulesData ?? [])
-        .filter(m => m.is_enabled)
-        .map(m => m.module_key)
+        .filter((moduleRow) => moduleRow.is_enabled)
+        .map((moduleRow) => moduleRow.module_key)
 
-      // Always include dashboard and configuration
-      if (!enabledModules.includes('dashboard'))     enabledModules.push('dashboard')
+      if (!enabledModules.includes('dashboard')) enabledModules.push('dashboard')
       if (!enabledModules.includes('configuration')) enabledModules.push('configuration')
 
-      // 6. Load role permissions
       const { data: userRolesData } = await supabase
         .from('user_roles')
         .select(`
@@ -276,7 +260,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
       }
 
-      // 7. Load field permissions for this role
       const { data: fieldPermsData } = await supabase
         .from('field_permissions')
         .select('table_name, field_name, can_view, can_edit')
@@ -284,24 +267,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setState({
         user: userData as CurrentUser,
-        org:  (orgData as Organisation | null) ?? null,
+        org: (orgData as Organisation | null) ?? null,
         allOrganisations,
-        tenant: activeTenant as Tenant,
-        allTenants: allTenants as Tenant[],
+        businessUnit: activeBusinessUnit,
+        businessUnits,
         permissions: {
-          role_name:          roleName,
-          is_admin:           isAdmin,
+          role_name: roleName,
+          is_admin: isAdmin,
           module_permissions: modulePermissions,
-          permissions_map:    modulePermissions,
-          field_permissions:  fieldPermsData ?? [],
-          enabled_modules:    enabledModules,
+          permissions_map: modulePermissions,
+          field_permissions: fieldPermsData ?? [],
+          enabled_modules: enabledModules,
         },
-        isLoading:       false,
+        isLoading: false,
         isAuthenticated: true,
       })
     } catch (err) {
       console.error('[AuthContext] Failed to load user data:', err)
-      setState(prev => ({ ...prev, isLoading: false, isAuthenticated: false }))
+      setState((prev) => ({ ...prev, isLoading: false, isAuthenticated: false }))
     }
   }, [supabase])
 
@@ -315,23 +298,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase) return
 
-    // Initial session check
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         loadUserData(user.id)
       } else {
-        setState(prev => ({ ...prev, isLoading: false }))
+        setState((prev) => ({ ...prev, isLoading: false }))
       }
     })
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         loadUserData(session.user.id)
       } else {
         setState({
-          user: null, org: null, tenant: null, allTenants: [],
-          allOrganisations: [], permissions: null, isLoading: false, isAuthenticated: false,
+          user: null,
+          org: null,
+          businessUnit: null,
+          businessUnits: [],
+          allOrganisations: [],
+          permissions: null,
+          isLoading: false,
+          isAuthenticated: false,
         })
       }
     })
@@ -355,15 +342,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       if (typeof window !== 'undefined') {
         Object.keys(localStorage)
-          .filter((key) => key.startsWith('active_tenant_'))
+          .filter((key) => key.startsWith('active_business_unit_'))
           .forEach((key) => localStorage.removeItem(key))
       }
       setState({
         user: null,
         org: null,
         allOrganisations: [],
-        tenant: null,
-        allTenants: [],
+        businessUnit: null,
+        businessUnits: [],
         permissions: null,
         isLoading: false,
         isAuthenticated: false,
@@ -371,15 +358,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [supabase])
 
-  const switchTenant = useCallback(async (tenantId: string) => {
-    const tenant = state.allTenants.find(t => t.id === tenantId)
-    if (!tenant) return
+  const switchBusinessUnit = useCallback(async (businessUnitId: string) => {
+    const businessUnit = state.businessUnits.find((item) => item.id === businessUnitId)
+    if (!businessUnit) return
 
     if (state.org) {
-      localStorage.setItem(`active_tenant_${state.org.id}`, tenantId)
+      localStorage.setItem(`active_business_unit_${state.org.id}`, businessUnitId)
     }
-    setState(prev => ({ ...prev, tenant }))
-  }, [state.allTenants, state.org])
+    setState((prev) => ({ ...prev, businessUnit }))
+  }, [state.businessUnits, state.org])
 
   const switchOrgContext = useCallback(async (orgId: string) => {
     if (!state.user) return
@@ -390,21 +377,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadUserData, state.user])
 
   return (
-    <AuthContext.Provider value={{ ...state, signOut, switchTenant, switchOrgContext, refreshAuth }}>
+    <AuthContext.Provider value={{ ...state, signOut, switchBusinessUnit, switchOrgContext, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
-// ----------------------------------------------------------
-// Hooks
-// ----------------------------------------------------------
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used within AuthProvider')
   return ctx
 }
 
-export function useUser()   { return useAuth().user }
-export function useOrg()    { return useAuth().org }
-export function useTenant() { return useAuth().tenant }
+export function useUser() { return useAuth().user }
+export function useOrg() { return useAuth().org }
+export function useBusinessUnit() { return useAuth().businessUnit }
+
+
+
+

@@ -23,7 +23,7 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
   const [query, setQuery] = useState('')
   const [roleId, setRoleId] = useState('all')
   const [profileId, setProfileId] = useState('all')
-  const [factoryId, setFactoryId] = useState('all')
+  const [businessUnitId, setBusinessUnitId] = useState('all')
   const [status, setStatus] = useState('all')
   const [page, setPage] = useState(1)
   const [panelOpen, setPanelOpen] = useState(false)
@@ -41,17 +41,17 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
     phone: '',
     designation: '',
     department: '',
-    factory_id: '',
+    business_unit_id: '',
     role_id: '',
     profile_id: '',
-    factory_ids: [] as string[],
+    business_unit_ids: [] as string[],
     password: '',
     password_reset_required: true,
     is_active: true,
   })
 
   const isSuperadmin = lookups.currentUser?.is_superadmin === true
-  const scopedFactories = (lookups.factories ?? []).filter((factory: any) => !form.org_id || factory.org_id === form.org_id)
+  const scopedBusinessUnits = (lookups.businessUnits ?? []).filter((businessUnit: any) => !form.org_id || businessUnit.org_id === form.org_id)
   const scopedRoles = (lookups.roles ?? []).filter((role: any) => !form.org_id || role.org_id === form.org_id || role.org_id === null)
   const scopedProfiles = (lookups.profiles ?? []).filter((profile: any) => !form.org_id || profile.org_id === form.org_id || profile.org_id === null)
 
@@ -67,11 +67,11 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
       const matchesSearch = !search || fullName(user).toLowerCase().includes(search) || user.email?.toLowerCase().includes(search)
       const matchesRole = roleId === 'all' || user.role_id === roleId
       const matchesProfile = profileId === 'all' || user.profile_id === profileId
-      const matchesFactory = factoryId === 'all' || user.factory_id === factoryId
+      const matchesBusinessUnit = businessUnitId === 'all' || user.business_unit_id === businessUnitId
       const matchesStatus = status === 'all' || (status === 'active' ? user.is_active !== false : user.is_active === false)
-      return matchesSearch && matchesRole && matchesProfile && matchesFactory && matchesStatus
+      return matchesSearch && matchesRole && matchesProfile && matchesBusinessUnit && matchesStatus
     })
-  }, [factoryId, profileId, query, roleId, status, users])
+  }, [businessUnitId, profileId, query, roleId, status, users])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visibleUsers = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -94,10 +94,10 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
       phone: '',
       designation: '',
       department: '',
-      factory_id: '',
+      business_unit_id: '',
       role_id: '',
       profile_id: '',
-      factory_ids: [],
+      business_unit_ids: [],
       password: '',
       password_reset_required: true,
       is_active: true,
@@ -116,10 +116,10 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
       phone: user.phone ?? '',
       designation: user.designation ?? '',
       department: user.department ?? '',
-      factory_id: user.factory_id ?? '',
+      business_unit_id: user.business_unit_id ?? '',
       role_id: user.role_id ?? '',
       profile_id: user.profile_id ?? '',
-      factory_ids: [],
+      business_unit_ids: [],
       password: '',
       password_reset_required: user.password_reset_required !== false,
       is_active: user.is_active !== false,
@@ -133,7 +133,7 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
     startTransition(async () => {
       const payload = {
         org_id: form.org_id,
-        factory_id: form.factory_id || null,
+        business_unit_id: form.business_unit_id || null,
         role_id: form.role_id || null,
         profile_id: form.profile_id || null,
         first_name: form.first_name,
@@ -148,7 +148,7 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
 
       const result = editingUser
         ? await adminUsers.update(form.id, payload)
-        : await adminUsers.create({ ...payload, password: form.password, factory_ids: form.factory_ids })
+        : await adminUsers.create({ ...payload, password: form.password, business_unit_ids: form.business_unit_ids })
 
       if (result.error || !result.data) {
         setError(result.error ?? 'Save failed.')
@@ -193,12 +193,12 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
     })
   }
 
-  function toggleFactorySelection(factoryId: string) {
+  function toggleBusinessUnitSelection(businessUnitId: string) {
     setForm((current) => ({
       ...current,
-      factory_ids: current.factory_ids.includes(factoryId)
-        ? current.factory_ids.filter((id) => id !== factoryId)
-        : [...current.factory_ids, factoryId],
+      business_unit_ids: current.business_unit_ids.includes(businessUnitId)
+        ? current.business_unit_ids.filter((id) => id !== businessUnitId)
+        : [...current.business_unit_ids, businessUnitId],
     }))
   }
 
@@ -207,7 +207,7 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
       <div className="admin-page-header">
         <div>
           <h1>Users</h1>
-          <p>Manage login users, roles, profiles, factory access, and account status.</p>
+          <p>Manage login users, roles, profiles, businessUnit access, and account status.</p>
         </div>
         <Button onClick={openCreate}>New User</Button>
       </div>
@@ -223,7 +223,7 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
         <Input label="Search" placeholder="Name or email" value={query} onChange={(event) => { setPage(1); setQuery(event.target.value) }} />
         <label>Role<select value={roleId} onChange={(event) => { setPage(1); setRoleId(event.target.value) }}><option value="all">All</option>{(lookups.roles ?? []).map((role: any) => <option key={role.id} value={role.id}>{role.label}</option>)}</select></label>
         <label>Profile<select value={profileId} onChange={(event) => { setPage(1); setProfileId(event.target.value) }}><option value="all">All</option>{(lookups.profiles ?? []).map((profile: any) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</select></label>
-        <label>Factory<select value={factoryId} onChange={(event) => { setPage(1); setFactoryId(event.target.value) }}><option value="all">All</option>{(lookups.factories ?? []).map((factory: any) => <option key={factory.id} value={factory.id}>{factory.name}</option>)}</select></label>
+        <label>Business Unit<select value={businessUnitId} onChange={(event) => { setPage(1); setBusinessUnitId(event.target.value) }}><option value="all">All</option>{(lookups.businessUnits ?? []).map((businessUnit: any) => <option key={businessUnit.id} value={businessUnit.id}>{businessUnit.name}</option>)}</select></label>
         <label>Status<select value={status} onChange={(event) => { setPage(1); setStatus(event.target.value) }}><option value="all">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
       </div>
 
@@ -232,7 +232,7 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
 
       <div className="super-table">
         <table>
-          <thead><tr><th>Avatar+Name</th><th>Email</th><th>Role</th><th>Profile</th><th>Factory</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Avatar+Name</th><th>Email</th><th>Role</th><th>Profile</th><th>BusinessUnit</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
           <tbody>
             {visibleUsers.map((user) => (
               <tr key={user.id}>
@@ -240,7 +240,7 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
                 <td>{user.email}</td>
                 <td>{user.role?.label ?? '-'}</td>
                 <td>{user.profile?.label ?? '-'}</td>
-                <td>{user.factory?.name ?? '-'}</td>
+                <td>{user.businessUnit?.name ?? '-'}</td>
                 <td><Badge variant={user.is_active === false ? 'danger' : 'success'}>{user.is_active === false ? 'Inactive' : 'Active'}</Badge></td>
                 <td>{user.last_login_at ? new Date(user.last_login_at).toLocaleString('en-IN') : '-'}</td>
                 <td><div className="row-actions"><Button size="xs" variant="outline" onClick={() => openEdit(user)}>Edit</Button><Button size="xs" variant="outline" onClick={() => resetPassword(user)}>Key</Button><Button size="xs" variant="outline" onClick={() => toggleStatus(user)}>{user.is_active === false ? 'Activate' : 'Suspend'}</Button><Button size="xs" variant="danger" onClick={() => deleteUser(user)}>Delete</Button></div></td>
@@ -265,11 +265,11 @@ export default function UsersAdminClient({ initialUsers, lookups }: { initialUse
               <div className="form-grid"><Input label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /><Input label="Designation" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /></div>
               <Input label="Department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
               <h3>Access</h3>
-              {isSuperadmin && <label>Organisation<select value={form.org_id} onChange={(e) => setForm({ ...form, org_id: e.target.value, factory_id: '', role_id: '', profile_id: '', factory_ids: [] })}>{(lookups.organisations ?? []).map((org: any) => <option key={org.id} value={org.id}>{org.name}</option>)}</select></label>}
-              <label>Factory*<select required value={form.factory_id} onChange={(e) => setForm({ ...form, factory_id: e.target.value })}><option value="">Select factory</option>{scopedFactories.map((factory: any) => <option key={factory.id} value={factory.id}>{factory.name}</option>)}</select></label>
+              {isSuperadmin && <label>Organisation<select value={form.org_id} onChange={(e) => setForm({ ...form, org_id: e.target.value, business_unit_id: '', role_id: '', profile_id: '', business_unit_ids: [] })}>{(lookups.organisations ?? []).map((org: any) => <option key={org.id} value={org.id}>{org.name}</option>)}</select></label>}
+              <label>Business Unit*<select required value={form.business_unit_id} onChange={(e) => setForm({ ...form, business_unit_id: e.target.value })}><option value="">Select business unit</option>{scopedBusinessUnits.map((businessUnit: any) => <option key={businessUnit.id} value={businessUnit.id}>{businessUnit.name}</option>)}</select></label>
               <label>Role*<select required value={form.role_id} onChange={(e) => setForm({ ...form, role_id: e.target.value })}><option value="">Select role</option>{scopedRoles.map((role: any) => <option key={role.id} value={role.id}>{role.label}</option>)}</select></label>
               <label>Profile*<select required value={form.profile_id} onChange={(e) => setForm({ ...form, profile_id: e.target.value })}><option value="">Select profile</option>{scopedProfiles.map((profile: any) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</select></label>
-              {!editingUser && <div><h3>Additional Factories</h3><div className="multi-select-list">{scopedFactories.map((factory: any) => <label key={factory.id}><input type="checkbox" checked={form.factory_ids.includes(factory.id)} onChange={() => toggleFactorySelection(factory.id)} /> {factory.name}</label>)}</div></div>}
+              {!editingUser && <div><h3>Additional Business Units</h3><div className="multi-select-list">{scopedBusinessUnits.map((businessUnit: any) => <label key={businessUnit.id}><input type="checkbox" checked={form.business_unit_ids.includes(businessUnit.id)} onChange={() => toggleBusinessUnitSelection(businessUnit.id)} /> {businessUnit.name}</label>)}</div></div>}
               {!editingUser && <><h3>Security</h3><Input label="Temporary Password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /><label className="toggle-row"><input type="checkbox" checked={form.password_reset_required} onChange={(e) => setForm({ ...form, password_reset_required: e.target.checked })} /> Force password reset</label></>}
               <h3>Status</h3><label className="toggle-row"><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /> Active</label>
             </div>
@@ -295,3 +295,15 @@ function PasswordModal({ email, password, onClose }: { email: string; password: 
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+
+
+

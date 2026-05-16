@@ -4,9 +4,9 @@ import { useState, useTransition } from 'react'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
-import { superadminFactories, superadminModules, superadminOrganisations } from '@/app/actions/superadmin'
+import { superadminBusinessUnits, superadminModules, superadminOrganisations } from '@/app/actions/superadmin'
 
-const tabs = ['Overview', 'Factories', 'Users', 'Modules', 'Audit Log'] as const
+const tabs = ['Overview', 'Business Units', 'Users', 'Modules', 'Audit Log'] as const
 const plans = ['Free', 'Pro', 'Enterprise'] as const
 
 export default function OrganisationDetailClient({ initialData }: { initialData: any }) {
@@ -20,7 +20,7 @@ export default function OrganisationDetailClient({ initialData }: { initialData:
     slug: data.organisation.slug ?? '',
     plan: data.organisation.plan ?? 'Free',
   })
-  const [factoryForm, setFactoryForm] = useState({ name: '', phone: '', address: '' })
+  const [businessUnitForm, setBusinessUnitForm] = useState({ name: '', phone: '', address: '' })
   const [suspendReason, setSuspendReason] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [showSuspend, setShowSuspend] = useState(false)
@@ -89,26 +89,26 @@ export default function OrganisationDetailClient({ initialData }: { initialData:
     })
   }
 
-  function addFactory() {
+  function addBusinessUnit() {
     run(async () => {
-      const result = await superadminFactories.create({
+      const result = await superadminBusinessUnits.create({
         org_id: data.organisation.id,
-        name: factoryForm.name,
-        phone: factoryForm.phone,
-        address: factoryForm.address,
+        name: businessUnitForm.name,
+        phone: businessUnitForm.phone,
+        address: businessUnitForm.address,
       })
       if (result.error) throw new Error(result.error)
-      setFactoryForm({ name: '', phone: '', address: '' })
-      setMessage('Factory added.')
+      setBusinessUnitForm({ name: '', phone: '', address: '' })
+      setMessage('BusinessUnit added.')
       await refresh()
     })
   }
 
-  function deleteFactory(id: string) {
+  function deleteBusinessUnit(id: string) {
     run(async () => {
-      const result = await superadminFactories.deleteFactory(id)
+      const result = await superadminBusinessUnits.deleteBusinessUnit(id)
       if (result.error) throw new Error(result.error)
-      setMessage('Factory deleted.')
+      setMessage('BusinessUnit deleted.')
       await refresh()
     })
   }
@@ -166,15 +166,15 @@ export default function OrganisationDetailClient({ initialData }: { initialData:
         </section>
       )}
 
-      {activeTab === 'Factories' && (
+      {activeTab === 'Business Units' && (
         <section className="detail-panel">
           <div className="form-grid">
-            <Input label="Factory Name" value={factoryForm.name} onChange={(event) => setFactoryForm({ ...factoryForm, name: event.target.value })} />
-            <Input label="Phone" value={factoryForm.phone} onChange={(event) => setFactoryForm({ ...factoryForm, phone: event.target.value })} />
-            <Input label="Address" value={factoryForm.address} onChange={(event) => setFactoryForm({ ...factoryForm, address: event.target.value })} />
+            <Input label="BusinessUnit Name" value={businessUnitForm.name} onChange={(event) => setBusinessUnitForm({ ...businessUnitForm, name: event.target.value })} />
+            <Input label="Phone" value={businessUnitForm.phone} onChange={(event) => setBusinessUnitForm({ ...businessUnitForm, phone: event.target.value })} />
+            <Input label="Address" value={businessUnitForm.address} onChange={(event) => setBusinessUnitForm({ ...businessUnitForm, address: event.target.value })} />
           </div>
-          <Button loading={isPending} onClick={addFactory}>Add Factory</Button>
-          <RecordTable rows={data.factories} columns={['name', 'phone', 'address', 'is_active']} onDelete={deleteFactory} />
+          <Button loading={isPending} onClick={addBusinessUnit}>Add Business Unit</Button>
+          <RecordTable rows={data.businessUnits} columns={['name', 'phone', 'address', 'is_active']} onDelete={deleteBusinessUnit} />
         </section>
       )}
 
@@ -263,3 +263,14 @@ function ConfirmModal({ title, children, onClose }: { title: string; children: R
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+
+

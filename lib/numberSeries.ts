@@ -2,7 +2,7 @@ import { getSupabaseClient } from '@/lib/supabase'
 
 interface NumberSeriesConfig {
   id: string
-  tenant_id: string
+  business_unit_id: string
   entity_type: string
   prefix: string | null
   suffix: string | null
@@ -48,14 +48,14 @@ function buildCode(config: NumberSeriesConfig, nextValue: number) {
   return chunks.join(sep)
 }
 
-export async function generateNextCode(tenantId: string, entityType: string) {
+export async function generateNextCode(businessUnitId: string, entityType: string) {
   const supabase = getSupabaseClient()
   const normalizedEntityType = normalizeEntityType(entityType)
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const { data: config, error: fetchError } = await supabase
       .from('number_series_config')
-      .select('id, tenant_id, entity_type, prefix, suffix, separator, include_fin_year, include_month, num_digits, start_from, current_value, is_active')
-      .eq('tenant_id', tenantId)
+      .select('id, business_unit_id, entity_type, prefix, suffix, separator, include_fin_year, include_month, num_digits, start_from, current_value, is_active')
+      .eq('business_unit_id', businessUnitId)
       .eq('entity_type', normalizedEntityType)
       .eq('is_active', true)
       .maybeSingle()
@@ -86,7 +86,7 @@ export async function generateNextCode(tenantId: string, entityType: string) {
   throw new Error(`Could not generate a unique code for ${normalizedEntityType}. Please retry.`)
 }
 
-export async function seedDefaultNumberSeries(tenantId: string, entityTypes: string[]) {
+export async function seedDefaultNumberSeries(businessUnitId: string, entityTypes: string[]) {
   const supabase = getSupabaseClient()
   const normalizedTypes = Array.from(new Set(entityTypes.map(normalizeEntityType)))
 
@@ -97,7 +97,7 @@ export async function seedDefaultNumberSeries(tenantId: string, entityTypes: str
     const { data: existing, error: lookupError } = await supabase
       .from('number_series_config')
       .select('id')
-      .eq('tenant_id', tenantId)
+      .eq('business_unit_id', businessUnitId)
       .eq('entity_type', entityType)
       .eq('is_active', true)
       .maybeSingle()
@@ -106,7 +106,7 @@ export async function seedDefaultNumberSeries(tenantId: string, entityTypes: str
     if (existing?.id) continue
 
     const { error: insertError } = await supabase.from('number_series_config').insert({
-      tenant_id: tenantId,
+      business_unit_id: businessUnitId,
       entity_type: entityType,
       prefix: defaults.prefix,
       suffix: null,
@@ -125,3 +125,8 @@ export async function seedDefaultNumberSeries(tenantId: string, entityTypes: str
     if (insertError) throw insertError
   }
 }
+
+
+
+
+

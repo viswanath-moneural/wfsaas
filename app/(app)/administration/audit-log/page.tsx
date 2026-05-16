@@ -11,3 +11,8 @@ export default async function AdministrationAuditLogPage() {
     </>
   )
 }
+
+
+
+
+

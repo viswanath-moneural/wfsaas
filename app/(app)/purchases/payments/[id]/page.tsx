@@ -9,13 +9,13 @@ import { getSupabaseClient } from '@/lib/supabase'
 import { formatMoney } from '@/lib/transactions'
 
 export default function VendorPaymentDetailPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const params = useParams<{ id: string }>()
   const [row, setRow] = useState<any>(null)
-  useEffect(() => { if (!tenant?.id || !params.id) return; void load(tenant.id, params.id) }, [tenant?.id, params.id])
-  async function load(tenantId: string, id: string) {
+  useEffect(() => { if (!businessUnit?.id || !params.id) return; void load(businessUnit.id, params.id) }, [businessUnit?.id, params.id])
+  async function load(businessUnitId: string, id: string) {
     const supabase = getSupabaseClient()
-    const { data } = await supabase.from('vendor_payments').select('payment_code, payment_date, amount, payment_method, notes, purchase_orders(po_code), vendors(vendor_name)').eq('tenant_id', tenantId).eq('id', id).single()
+    const { data } = await supabase.from('vendor_payments').select('payment_code, payment_date, amount, payment_method, notes, purchase_orders(po_code), vendors(vendor_name)').eq('business_unit_id', businessUnitId).eq('id', id).single()
     setRow(data)
   }
   return <>
@@ -29,3 +29,11 @@ export default function VendorPaymentDetailPage() {
     </Card>
   </>
 }
+
+
+
+
+
+
+
+

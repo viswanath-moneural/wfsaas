@@ -93,25 +93,25 @@ export async function createOrganisation(input: {
   return { ok: true, organisationId: data.id }
 }
 
-export async function createFactory(input: {
+export async function createBusinessUnit(input: {
   org_id: string
   name: string
   phone?: string | null
   address?: string | null
-}): Promise<PlatformActionResult<{ factoryId: string }>> {
+}): Promise<PlatformActionResult<{ businessUnitId: string }>> {
   const caller = await requirePrivilegedRole()
   if (!caller.ok) return caller
 
   const name = input.name.trim()
   if (!input.org_id) return { ok: false, message: 'Organisation is required.', code: 'VALIDATION_ERROR' }
-  if (!name) return { ok: false, message: 'Factory name is required.', code: 'VALIDATION_ERROR' }
+  if (!name) return { ok: false, message: 'Business Unit name is required.', code: 'VALIDATION_ERROR' }
 
   const admin = getSupabaseAdminClient()
   const { data: org } = await admin.from('organisations').select('id').eq('id', input.org_id).maybeSingle()
   if (!org) return { ok: false, message: 'Selected organisation was not found.', code: 'ORG_NOT_FOUND' }
 
   const { data, error } = await admin
-    .from('tenants')
+    .from('business_units')
     .insert({
       org_id: input.org_id,
       name,
@@ -125,10 +125,10 @@ export async function createFactory(input: {
     .single()
 
   if (error || !data?.id) {
-    return { ok: false, message: error?.message ?? 'Failed to create factory.', code: 'FACTORY_CREATE_FAILED' }
+    return { ok: false, message: error?.message ?? 'Failed to create businessUnit.', code: 'FACTORY_CREATE_FAILED' }
   }
 
-  return { ok: true, factoryId: data.id }
+  return { ok: true, businessUnitId: data.id }
 }
 
 export async function assignUserRole(input: {
@@ -261,7 +261,7 @@ export async function createRole(input: {
 }
 
 export async function saveNumberSeries(input: {
-  tenant_id: string
+  business_unit_id: string
   entity_type: string
   prefix?: string | null
   suffix?: string | null
@@ -274,11 +274,11 @@ export async function saveNumberSeries(input: {
   const caller = await requirePrivilegedRole()
   if (!caller.ok) return caller
 
-  if (!input.tenant_id || !input.entity_type) return { ok: false, message: 'Factory and entity type are required.', code: 'VALIDATION_ERROR' }
+  if (!input.business_unit_id || !input.entity_type) return { ok: false, message: 'BusinessUnit and entity type are required.', code: 'VALIDATION_ERROR' }
 
   const admin = getSupabaseAdminClient()
   const payload = {
-    tenant_id: input.tenant_id,
+    business_unit_id: input.business_unit_id,
     entity_type: input.entity_type,
     prefix: input.prefix?.trim() || null,
     suffix: input.suffix?.trim() || null,
@@ -295,7 +295,7 @@ export async function saveNumberSeries(input: {
   const { data: existing, error: lookupError } = await admin
     .from('number_series_config')
     .select('id')
-    .eq('tenant_id', input.tenant_id)
+    .eq('business_unit_id', input.business_unit_id)
     .eq('entity_type', input.entity_type)
     .maybeSingle()
 
@@ -310,7 +310,7 @@ export async function saveNumberSeries(input: {
 }
 
 export async function createProduct(input: {
-  tenant_id: string
+  business_unit_id: string
   product_code: string
   product_name: string
   category: string
@@ -321,7 +321,7 @@ export async function createProduct(input: {
   if (!caller.ok) return caller
   const admin = getSupabaseAdminClient()
   const { error } = await admin.from('products').insert({
-    tenant_id: input.tenant_id,
+    business_unit_id: input.business_unit_id,
     product_code: input.product_code.trim(),
     product_name: input.product_name.trim(),
     category: input.category,
@@ -336,7 +336,7 @@ export async function createProduct(input: {
 }
 
 export async function createMaterial(input: {
-  tenant_id: string
+  business_unit_id: string
   material_code: string
   material_name: string
   unit: string
@@ -346,7 +346,7 @@ export async function createMaterial(input: {
   if (!caller.ok) return caller
   const admin = getSupabaseAdminClient()
   const { error } = await admin.from('materials').insert({
-    tenant_id: input.tenant_id,
+    business_unit_id: input.business_unit_id,
     material_code: input.material_code.trim(),
     material_name: input.material_name.trim(),
     unit: input.unit.trim(),
@@ -360,7 +360,7 @@ export async function createMaterial(input: {
 }
 
 export async function createCustomer(input: {
-  tenant_id: string
+  business_unit_id: string
   customer_code: string
   customer_name: string
   company_name?: string | null
@@ -380,14 +380,14 @@ export async function createCustomer(input: {
   const now = new Date().toISOString()
   const customerCode = input.customer_code.trim()
   const customerName = input.customer_name.trim()
-  if (!input.tenant_id || !customerCode || !customerName) {
-    return { ok: false, message: 'Factory, customer code, and customer name are required.', code: 'VALIDATION_ERROR' }
+  if (!input.business_unit_id || !customerCode || !customerName) {
+    return { ok: false, message: 'BusinessUnit, customer code, and customer name are required.', code: 'VALIDATION_ERROR' }
   }
 
   const { data: party, error: partyError } = await admin
     .from('parties')
     .insert({
-      tenant_id: input.tenant_id,
+      business_unit_id: input.business_unit_id,
       party_code: customerCode,
       party_name: customerName,
       legal_name: input.company_name?.trim() || customerName,
@@ -409,7 +409,7 @@ export async function createCustomer(input: {
   }
 
   const { data: customer, error } = await admin.from('customers').insert({
-    tenant_id: input.tenant_id,
+    business_unit_id: input.business_unit_id,
     party_id: party.id,
     customer_code: customerCode,
     customer_name: customerName,
@@ -433,7 +433,7 @@ export async function createCustomer(input: {
     const contactResult = await createContactForParty({
       admin,
       callerUserId: caller.userId,
-      tenantId: input.tenant_id,
+      businessUnitId: input.business_unit_id,
       partyId: party.id,
       customerId: customer.id,
       vendorId: null,
@@ -450,7 +450,7 @@ export async function createCustomer(input: {
 }
 
 export async function createVendor(input: {
-  tenant_id: string
+  business_unit_id: string
   vendor_code: string
   vendor_name: string
   phone_number?: string | null
@@ -468,14 +468,14 @@ export async function createVendor(input: {
   const now = new Date().toISOString()
   const vendorCode = input.vendor_code.trim()
   const vendorName = input.vendor_name.trim()
-  if (!input.tenant_id || !vendorCode || !vendorName) {
-    return { ok: false, message: 'Factory, vendor code, and vendor name are required.', code: 'VALIDATION_ERROR' }
+  if (!input.business_unit_id || !vendorCode || !vendorName) {
+    return { ok: false, message: 'BusinessUnit, vendor code, and vendor name are required.', code: 'VALIDATION_ERROR' }
   }
 
   const { data: party, error: partyError } = await admin
     .from('parties')
     .insert({
-      tenant_id: input.tenant_id,
+      business_unit_id: input.business_unit_id,
       party_code: vendorCode,
       party_name: vendorName,
       legal_name: vendorName,
@@ -494,7 +494,7 @@ export async function createVendor(input: {
   }
 
   const { data: vendor, error } = await admin.from('vendors').insert({
-    tenant_id: input.tenant_id,
+    business_unit_id: input.business_unit_id,
     party_id: party.id,
     vendor_code: vendorCode,
     vendor_name: vendorName,
@@ -516,7 +516,7 @@ export async function createVendor(input: {
     const contactResult = await createContactForParty({
       admin,
       callerUserId: caller.userId,
-      tenantId: input.tenant_id,
+      businessUnitId: input.business_unit_id,
       partyId: party.id,
       customerId: null,
       vendorId: vendor.id,
@@ -535,7 +535,7 @@ export async function createVendor(input: {
 async function createContactForParty(input: {
   admin: ReturnType<typeof getSupabaseAdminClient>
   callerUserId: string
-  tenantId: string
+  businessUnitId: string
   partyId: string
   customerId: string | null
   vendorId: string | null
@@ -549,7 +549,7 @@ async function createContactForParty(input: {
   const { data: contact, error: contactError } = await input.admin
     .from('contact_persons')
     .insert({
-      tenant_id: input.tenantId,
+      business_unit_id: input.businessUnitId,
       party_id: input.partyId,
       name: input.name,
       phone: input.phone || null,
@@ -570,7 +570,7 @@ async function createContactForParty(input: {
   const { data: contactRole, error: roleError } = await input.admin
     .from('contact_roles')
     .insert({
-      tenant_id: input.tenantId,
+      business_unit_id: input.businessUnitId,
       contact_person_id: contact.id,
       customer_id: input.customerId,
       vendor_id: input.vendorId,
@@ -591,7 +591,7 @@ async function createContactForParty(input: {
 }
 
 export async function createWarehouse(input: {
-  tenant_id: string
+  business_unit_id: string
   warehouse_code: string
   warehouse_name: string
   address?: string | null
@@ -603,7 +603,7 @@ export async function createWarehouse(input: {
   if (!caller.ok) return caller
   const admin = getSupabaseAdminClient()
   const { error } = await admin.from('warehouses').insert({
-    tenant_id: input.tenant_id,
+    business_unit_id: input.business_unit_id,
     warehouse_code: input.warehouse_code.trim(),
     warehouse_name: input.warehouse_name.trim(),
     address: input.address?.trim() || null,
@@ -617,3 +617,14 @@ export async function createWarehouse(input: {
   if (error) return { ok: false, message: error.message, code: 'WAREHOUSE_CREATE_FAILED' }
   return { ok: true }
 }
+
+
+
+
+
+
+
+
+
+
+

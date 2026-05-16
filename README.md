@@ -1,6 +1,6 @@
 # WFSAAS ERP
 
-WFSAAS is a multi-tenant ERP SaaS for manufacturing and trading businesses, built with Next.js, Supabase, Vercel, and a Meta WhatsApp webhook integration.
+WFSAAS is a multi-organisation ERP SaaS for manufacturing and trading businesses, built with Next.js, Supabase, Vercel, and a Meta WhatsApp webhook integration.
 
 This README is now the short project index. The detailed product, architecture, database, application, security, QA, and operations documentation lives in `docs/`.
 
@@ -30,7 +30,7 @@ This README is now the short project index. The detailed product, architecture, 
 The repository currently contains working foundations for:
 
 - Auth and protected app shell
-- Organisation, factory, user, role, module, number-series, and master configuration pages
+- Organisation, business unit, user, role, module, number-series, and master configuration pages
 - Sales orders, dispatch, invoices, and customer payments
 - Purchase orders, GRNs, and vendor payments
 - Inventory stock, movements, and adjustments
@@ -59,3 +59,6 @@ Set these in `.env.local` and Vercel:
 - `WHATSAPP_VERIFY_TOKEN`
 - `WHATSAPP_API_TOKEN`
 - `WHATSAPP_PHONE_NUMBER_ID`
+
+
+

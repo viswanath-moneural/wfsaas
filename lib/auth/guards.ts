@@ -16,7 +16,7 @@ export class AuthGuardError extends Error {
 export interface AdminCurrentUser {
   id: string
   org_id: string | null
-  factory_id: string | null
+  business_unit_id: string | null
   role_id: string | null
   profile_id: string | null
   first_name: string
@@ -168,3 +168,8 @@ export async function getEffectivePermissions(userId: string): Promise<Record<st
 
   return effective
 }
+
+
+
+
+

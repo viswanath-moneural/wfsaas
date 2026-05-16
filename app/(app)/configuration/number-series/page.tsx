@@ -10,13 +10,13 @@ import Badge from '@/components/ui/Badge'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { saveNumberSeries } from '@/app/actions/platform'
 
 const ENTITY_OPTIONS = ['sales_order', 'dispatch_order', 'invoice', 'customer_payment', 'vendor_payment', 'purchase_order', 'grn']
 
 export default function NumberSeriesPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const { canCreate: canEdit } = usePermissions('configuration')
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,20 +24,20 @@ export default function NumberSeriesPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState({ entity_type: 'sales_order', prefix: '', suffix: '', separator: '-', num_digits: '4', start_from: '1', include_fin_year: true, include_month: false })
 
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
-  async function load(tenantId: string) {
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void load(businessUnit.id) }, [businessUnit?.id])
+  async function load(businessUnitId: string) {
     const supabase = getSupabaseClient()
-    const { data, error: fetchError } = await supabase.from('number_series_config').select('id, entity_type, prefix, suffix, separator, num_digits, start_from, current_value, include_fin_year, include_month, is_active').eq('tenant_id', tenantId).order('entity_type', { ascending: true })
+    const { data, error: fetchError } = await supabase.from('number_series_config').select('id, entity_type, prefix, suffix, separator, num_digits, start_from, current_value, include_fin_year, include_month, is_active').eq('business_unit_id', businessUnitId).order('entity_type', { ascending: true })
     if (fetchError) setError(fetchError.message)
     setRows(data ?? [])
     setLoading(false)
   }
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!tenant?.id || !canEdit) return
+    if (!businessUnit?.id || !canEdit) return
     setSaving(true); setError('')
     const result = await saveNumberSeries({
-      tenant_id: tenant.id,
+      business_unit_id: businessUnit.id,
       entity_type: form.entity_type,
       prefix: form.prefix || null,
       suffix: form.suffix || null,
@@ -49,7 +49,7 @@ export default function NumberSeriesPage() {
     })
     setSaving(false)
     if (!result.ok) { setError(result.message); return }
-    await load(tenant.id)
+    await load(businessUnit.id)
   }
 
   const columns: Column<any>[] = useMemo(() => [
@@ -62,11 +62,11 @@ export default function NumberSeriesPage() {
     { key: 'is_active', header: 'Status', render: (v) => <Badge variant={v ? 'success' : 'slate'}>{v ? 'Active' : 'Inactive'}</Badge> },
   ], [])
 
-  if (!tenant) return <TenantSetupNotice title="Number Series" description="Configure document codes after selecting a factory." />
+  if (!businessUnit) return <BusinessUnitSetupNotice title="Number Series" description="Configure document codes after selecting a businessUnit." />
 
   return (
     <>
-      <PageHeader title="Number Series" description={`Configure document code generation for ${tenant.name}.`} />
+      <PageHeader title="Number Series" description={`Configure document code generation for ${businessUnit.name}.`} />
       <section className="layout">
         <Card>
           <h2>Configure Series</h2>
@@ -89,3 +89,12 @@ export default function NumberSeriesPage() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+

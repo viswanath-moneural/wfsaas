@@ -7,16 +7,16 @@ import { useAuth } from '@/lib/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 
 export default function StockLevelsPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const [rmRows, setRmRows] = useState<any[]>([])
   const [fgRows, setFgRows] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
-  async function load(tenantId: string) {
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void load(businessUnit.id) }, [businessUnit?.id])
+  async function load(businessUnitId: string) {
     const supabase = getSupabaseClient()
     const [{ data: rm }, { data: fg }] = await Promise.all([
-      supabase.from('stock_levels').select('material_code, material_name, current_stock, default_unit').eq('tenant_id', tenantId).order('material_code', { ascending: true }),
-      supabase.from('finished_goods_stock').select('product_code, product_name, current_stock').eq('tenant_id', tenantId).order('product_code', { ascending: true }),
+      supabase.from('stock_levels').select('material_code, material_name, current_stock, default_unit').eq('business_unit_id', businessUnitId).order('material_code', { ascending: true }),
+      supabase.from('finished_goods_stock').select('product_code, product_name, current_stock').eq('business_unit_id', businessUnitId).order('product_code', { ascending: true }),
     ])
     setRmRows(rm ?? []); setFgRows(fg ?? []); setLoading(false)
   }
@@ -29,3 +29,11 @@ export default function StockLevelsPage() {
     <DataTable columns={fgColumns} data={fgRows} loading={loading} emptyTitle="No finished goods stock" emptyMessage="Production and dispatch entries will populate balances." />
   </>
 }
+
+
+
+
+
+
+
+

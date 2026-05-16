@@ -91,7 +91,7 @@ export async function runHealthChecks(): Promise<SuperadminActionResult<HealthCh
       ...[
         ['users', 'users'],
         ['organisations', 'organisations'],
-        ['factories', 'tenants'],
+        ['business_units', 'business_units'],
         ['sales_orders', 'sales_orders'],
         ['purchase_orders', 'purchase_orders'],
         ['inventory_items', 'inventory_items'],
@@ -158,3 +158,9 @@ export async function runHealthChecks(): Promise<SuperadminActionResult<HealthCh
     return fail(error)
   }
 }
+
+
+
+
+
+

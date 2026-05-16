@@ -10,7 +10,14 @@ export default async function UsersPage() {
   return (
     <>
       {(usersResult.error || lookupsResult.error) && <div className="error-panel">{usersResult.error ?? lookupsResult.error}</div>}
-      <UsersClient users={usersResult.data ?? []} lookups={lookupsResult.data ?? { organisations: [], factories: [], roles: [] }} />
+      <UsersClient users={usersResult.data ?? []} lookups={lookupsResult.data ?? { organisations: [], businessUnits: [], roles: [] }} />
     </>
   )
 }
+
+
+
+
+
+
+

@@ -15,7 +15,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function GrnDetailPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const { error: notifyError } = useToast()
   const params = useParams<{ id: string }>()
   const [grn, setGrn] = useState<any>(null)
@@ -25,13 +25,13 @@ export default function GrnDetailPage() {
   const [error, setError] = useState('')
   const { canEdit: canUpdate } = usePermissions('purchases')
   const canEditLines = canUpdate && isPurchaseEditable(grn?.purchase_orders?.status)
-  useEffect(() => { if (!tenant?.id || !params.id) return; void load(tenant.id, params.id) }, [tenant?.id, params.id])
-  async function load(tenantId: string, id: string) {
+  useEffect(() => { if (!businessUnit?.id || !params.id) return; void load(businessUnit.id, params.id) }, [businessUnit?.id, params.id])
+  async function load(businessUnitId: string, id: string) {
     const supabase = getSupabaseClient()
     const [{ data: header }, { data: lineItems }, { data: materialData }] = await Promise.all([
-      supabase.from('goods_receipt_notes').select('id, grn_code, grn_date, vendors(vendor_name), purchase_orders(po_code, status)').eq('tenant_id', tenantId).eq('id', id).single(),
+      supabase.from('goods_receipt_notes').select('id, grn_code, grn_date, vendors(vendor_name), purchase_orders(po_code, status)').eq('business_unit_id', businessUnitId).eq('id', id).single(),
       supabase.from('grn_items').select('id, received_qty, rejected_qty, unit, rate, batch_no, materials(material_code, material_name)').eq('grn_id', id).order('created_at', { ascending: true }),
-      supabase.from('materials').select('id, material_code, material_name').eq('tenant_id', tenantId).eq('is_active', true).order('material_code', { ascending: true }),
+      supabase.from('materials').select('id, material_code, material_name').eq('business_unit_id', businessUnitId).eq('is_active', true).order('material_code', { ascending: true }),
     ])
     setGrn(header); setItems(lineItems ?? []); setMaterials(materialData ?? [])
   }
@@ -41,7 +41,7 @@ export default function GrnDetailPage() {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase.from('grn_items').insert({ grn_id: params.id, material_id: form.material_id, received_qty: Number(form.received_qty), rejected_qty: Number(form.rejected_qty), unit: form.unit, rate: Number(form.rate), batch_no: form.batch_no || null }).select('id').single()
     if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to add GRN item.'); return }
-    if (tenant?.id) await load(tenant.id, params.id)
+    if (businessUnit?.id) await load(businessUnit.id, params.id)
   }
   return <>
     <PageHeader title={grn?.grn_code ?? 'GRN'} description={`${grn?.vendors?.vendor_name ?? ''} / ${grn?.purchase_orders?.po_code ?? ''}`} />
@@ -61,3 +61,11 @@ export default function GrnDetailPage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} .form-error{margin:0;color:var(--text-danger)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+

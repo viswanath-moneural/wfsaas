@@ -113,7 +113,7 @@ export async function seedSuperadmin(): Promise<SeedSuperadminResult> {
       const { error: userInsertError } = await admin.from('users').insert({
         id: authUser.id,
         org_id: platformOrg.id,
-        tenant_id: null,
+        business_unit_id: null,
         full_name: 'WFSAAS Super Admin',
         phone: '0000000000',
         role: 'superadmin',
@@ -173,3 +173,8 @@ export async function seedSuperadmin(): Promise<SeedSuperadminResult> {
     }
   }
 }
+
+
+
+
+

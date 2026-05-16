@@ -74,3 +74,7 @@ export function isSalesEditable(status: string | null | undefined) {
 export function isPurchaseEditable(status: string | null | undefined) {
   return ['draft', 'approved'].includes(String(status ?? 'draft'))
 }
+
+
+
+

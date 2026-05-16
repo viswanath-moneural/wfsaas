@@ -12,12 +12,12 @@ import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
 import { formatMoney } from '@/lib/transactions'
 import { generateNextCode } from '@/lib/numberSeries'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function VendorPaymentsPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const { error: notifyError } = useToast()
   const router = useRouter()
   const [rows, setRows] = useState<any[]>([])
@@ -27,37 +27,37 @@ export default function VendorPaymentsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const { canCreate } = usePermissions('purchases')
-  useEffect(() => { if (!tenant?.id) { setLoading(false); return } ; void load(tenant.id) }, [tenant?.id])
-  async function load(tenantId: string) {
+  useEffect(() => { if (!businessUnit?.id) { setLoading(false); return } ; void load(businessUnit.id) }, [businessUnit?.id])
+  async function load(businessUnitId: string) {
     const supabase = getSupabaseClient()
     const [{ data: payments }, { data: po }] = await Promise.all([
-      supabase.from('vendor_payments').select('id, payment_code, payment_date, amount, purchase_orders(po_code), vendors(vendor_name)').eq('tenant_id', tenantId).order('payment_date', { ascending: false }),
-      supabase.from('purchase_orders').select('id, po_code, vendor_id, vendors(vendor_name)').eq('tenant_id', tenantId).order('po_date', { ascending: false }),
+      supabase.from('vendor_payments').select('id, payment_code, payment_date, amount, purchase_orders(po_code), vendors(vendor_name)').eq('business_unit_id', businessUnitId).order('payment_date', { ascending: false }),
+      supabase.from('purchase_orders').select('id, po_code, vendor_id, vendors(vendor_name)').eq('business_unit_id', businessUnitId).order('po_date', { ascending: false }),
     ])
     setRows(payments ?? []); setPoOptions(po ?? []); setLoading(false)
   }
   async function create(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); if (!tenant?.id || !form.po_id) return
+    e.preventDefault(); if (!businessUnit?.id || !form.po_id) return
     if (!canCreate) { setError('You do not have permission to record vendor payments.'); return }
     setSaving(true)
     const supabase = getSupabaseClient()
     const selected = poOptions.find((item) => item.id === form.po_id)
     let paymentCode = ''
     try {
-      paymentCode = (await generateNextCode(tenant.id, 'vendor_payment')).code
+      paymentCode = (await generateNextCode(businessUnit.id, 'vendor_payment')).code
     } catch (seriesError: any) {
       setSaving(false)
       setError(`${seriesError.message} Configure Number Series in Configuration.`)
       return
     }
-    const { data, error } = await supabase.from('vendor_payments').insert({ tenant_id: tenant.id, payment_code: paymentCode, po_id: form.po_id, vendor_id: selected?.vendor_id, payment_date: form.payment_date, amount: Number(form.amount), payment_method: form.payment_method }).select('id').single()
+    const { data, error } = await supabase.from('vendor_payments').insert({ business_unit_id: businessUnit.id, payment_code: paymentCode, po_id: form.po_id, vendor_id: selected?.vendor_id, payment_date: form.payment_date, amount: Number(form.amount), payment_method: form.payment_method }).select('id').single()
     if (handleSupabaseError(error, notifyError)) { setSaving(false); setError(error?.message ?? 'Failed to save vendor payment.'); return }
-    setSaving(false); await load(tenant.id); if (data?.id) router.push(`/purchases/payments/${data.id}`)
+    setSaving(false); await load(businessUnit.id); if (data?.id) router.push(`/purchases/payments/${data.id}`)
   }
   const columns: Column<any>[] = useMemo(() => [
     { key: 'payment_code', header: 'Payment No.', render: (v) => v || '-' }, { key: 'purchase_orders', header: 'PO', render: (_v, r) => r.purchase_orders?.po_code ?? '-' }, { key: 'vendors', header: 'Vendor', render: (_v, r) => r.vendors?.vendor_name ?? '-' }, { key: 'payment_date', header: 'Date' }, { key: 'amount', header: 'Amount', align: 'right', render: (v) => formatMoney(Number(v ?? 0)) },
   ], [])
-  if (!tenant) return <TenantSetupNotice title="Vendor Payments" description="Select or create a factory before recording vendor payments." />
+  if (!businessUnit) return <BusinessUnitSetupNotice title="Vendor Payments" description="Select or create a businessUnit before recording vendor payments." />
   return <>
     <PageHeader title="Vendor Payments" description="Capture vendor payments against purchase orders." />
     <section className="layout">
@@ -74,3 +74,12 @@ export default function VendorPaymentsPage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} .form-error{margin:0;color:var(--text-danger)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+
+

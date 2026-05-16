@@ -14,13 +14,13 @@ MVP 1 is not fully production-complete yet because onboarding, RLS, auto-numberi
 - Protected app shell.
 - Middleware auth guard.
 - Sidebar/topbar/mobile navigation.
-- Tenant context and factory switching.
+- Business Unit context and business unit switching.
 - Permission helper functions.
 
 ### Configuration
 
 - Organisation.
-- Factories/tenants.
+- Business Units.
 - Users.
 - Roles.
 - Modules.
@@ -72,19 +72,19 @@ MVP 1 is not fully production-complete yet because onboarding, RLS, auto-numberi
 - User onboarding: creating a `public.users` row is not the same as creating Supabase Auth login credentials.
 - Auto-numbering: PO and GRN still need to use number series consistently.
 - Missing routes: module registry includes several routes that do not yet exist.
-- Mobile tenant switching: selector is hidden in the top bar on small screens.
+- Mobile business unit switching: selector is hidden in the top bar on small screens.
 - README/docs were stale before this documentation pack.
 
 ## MVP 1 Completion Criteria
 
-- Superadmin can create organisation and factory without RLS deadlock.
+- Superadmin can create organisation and business unit without RLS deadlock.
 - Admin can create users with login credentials and app mappings.
 - All required documents are auto-numbered from `number_series_config`.
 - Sales flow passes UAT.
 - Purchase flow passes UAT.
 - Inventory flow passes UAT.
-- Dashboard reflects active tenant data.
-- Tenant isolation and admin permissions are verified.
+- Dashboard reflects active business unit data.
+- Business Unit isolation and admin permissions are verified.
 - Vercel production build is passing.
 
 ## MVP 2 Roadmap
@@ -106,3 +106,11 @@ MVP 1 is not fully production-complete yet because onboarding, RLS, auto-numberi
 4. Hide or implement missing module registry routes.
 5. Run full MVP1 UAT on deployed Vercel.
 6. Start manufacturing or CRM depth based on customer demo priority.
+
+
+
+
+
+
+
+

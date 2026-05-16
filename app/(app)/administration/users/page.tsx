@@ -10,7 +10,14 @@ export default async function AdministrationUsersPage() {
   return (
     <>
       {(usersResult.error || lookupsResult.error) && <div className="error-panel">{usersResult.error ?? lookupsResult.error}</div>}
-      <UsersAdminClient initialUsers={usersResult.data ?? []} lookups={lookupsResult.data ?? { organisations: [], factories: [], roles: [], profiles: [], permissionSets: [] }} />
+      <UsersAdminClient initialUsers={usersResult.data ?? []} lookups={lookupsResult.data ?? { organisations: [], businessUnits: [], roles: [], profiles: [], permissionSets: [] }} />
     </>
   )
 }
+
+
+
+
+
+
+

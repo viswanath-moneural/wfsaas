@@ -10,7 +10,7 @@ import Input from '@/components/ui/Input'
 import { useAuth } from '@/lib/AuthContext'
 import { usePermissions } from '@/lib/permissions/usePermissions'
 import { getSupabaseClient } from '@/lib/supabase'
-import TenantSetupNotice from '@/components/layout/TenantSetupNotice'
+import BusinessUnitSetupNotice from '@/components/layout/BusinessUnitSetupNotice'
 import { createWarehouse } from '@/app/actions/platform'
 
 interface WarehouseRow {
@@ -33,7 +33,7 @@ const EMPTY_FORM = {
 }
 
 export default function WarehousesPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const [rows, setRows] = useState<WarehouseRow[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(true)
@@ -43,20 +43,20 @@ export default function WarehousesPage() {
   const { canCreate: canEdit } = usePermissions('configuration')
 
   useEffect(() => {
-    if (!tenant?.id) {
+    if (!businessUnit?.id) {
       setLoading(false)
       return
     }
-    fetchWarehouses(tenant.id)
-  }, [tenant?.id])
+    fetchWarehouses(businessUnit.id)
+  }, [businessUnit?.id])
 
-  async function fetchWarehouses(tenantId: string) {
+  async function fetchWarehouses(businessUnitId: string) {
     setLoading(true)
     const supabase = getSupabaseClient()
     const { data, error: fetchError } = await supabase
       .from('warehouses')
       .select('id, warehouse_code, warehouse_name, city, state, is_default, is_active')
-      .eq('tenant_id', tenantId)
+      .eq('business_unit_id', businessUnitId)
       .order('warehouse_code', { ascending: true })
 
     if (fetchError) setError(fetchError.message)
@@ -66,13 +66,13 @@ export default function WarehousesPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!tenant?.id) return
+    if (!businessUnit?.id) return
 
     setSaving(true)
     setError('')
 
     const result = await createWarehouse({
-      tenant_id: tenant.id,
+      business_unit_id: businessUnit.id,
       warehouse_code: form.warehouse_code.trim(),
       warehouse_name: form.warehouse_name.trim(),
       address: form.address.trim() || null,
@@ -89,7 +89,7 @@ export default function WarehousesPage() {
     }
 
     setForm(EMPTY_FORM)
-    await fetchWarehouses(tenant.id)
+    await fetchWarehouses(businessUnit.id)
   }
 
   const columns: Column<WarehouseRow>[] = useMemo(() => [
@@ -109,13 +109,13 @@ export default function WarehousesPage() {
     },
   ], [])
 
-  if (!tenant) {
-    return <TenantSetupNotice title="Warehouses" description="Select or create a factory before creating warehouse masters." />
+  if (!businessUnit) {
+    return <BusinessUnitSetupNotice title="Warehouses" description="Select or create a businessUnit before creating warehouse masters." />
   }
 
   return (
     <>
-      <PageHeader title="Warehouses" description={`Stock locations for ${tenant.name}.`} />
+      <PageHeader title="Warehouses" description={`Stock locations for ${businessUnit.name}.`} />
 
       <section className="master-layout">
         <Card>
@@ -191,3 +191,12 @@ export default function WarehousesPage() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+

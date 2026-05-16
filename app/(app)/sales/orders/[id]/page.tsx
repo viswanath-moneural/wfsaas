@@ -18,7 +18,7 @@ const ORDER_STATUSES = ['draft', 'confirmed', 'dispatched', 'invoiced', 'paid', 
 
 interface SalesOrder {
   id: string
-  tenant_id: string
+  business_unit_id: string
   so_code: string
   order_date: string
   expected_date: string | null
@@ -59,7 +59,7 @@ const EMPTY_ITEM_FORM = {
 export default function SalesOrderDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const orderId = params.id
 
   const [order, setOrder] = useState<SalesOrder | null>(null)
@@ -76,13 +76,13 @@ export default function SalesOrderDetailPage() {
   const canEditLines = canUpdate && isSalesEditable(order?.status)
 
   useEffect(() => {
-    if (!tenant?.id || !orderId) {
+    if (!businessUnit?.id || !orderId) {
       setLoading(false)
       return
     }
 
-    fetchDetail(tenant.id, orderId)
-  }, [tenant?.id, orderId])
+    fetchDetail(businessUnit.id, orderId)
+  }, [businessUnit?.id, orderId])
 
   useEffect(() => {
     if (!itemForm.product_id && products[0]?.id) {
@@ -90,7 +90,7 @@ export default function SalesOrderDetailPage() {
     }
   }, [itemForm.product_id, products])
 
-  async function fetchDetail(tenantId: string, id: string) {
+  async function fetchDetail(businessUnitId: string, id: string) {
     setLoading(true)
     setError('')
 
@@ -99,10 +99,10 @@ export default function SalesOrderDetailPage() {
       supabase
         .from('sales_orders')
         .select(`
-          id, tenant_id, so_code, order_date, expected_date, status, notes,
+          id, business_unit_id, so_code, order_date, expected_date, status, notes,
           customers(customer_code, customer_name, company_name)
         `)
-        .eq('tenant_id', tenantId)
+        .eq('business_unit_id', businessUnitId)
         .eq('id', id)
         .single(),
       supabase
@@ -117,7 +117,7 @@ export default function SalesOrderDetailPage() {
       supabase
         .from('products')
         .select('id, product_code, product_name')
-        .eq('tenant_id', tenantId)
+        .eq('business_unit_id', businessUnitId)
         .eq('is_active', true)
         .order('product_code', { ascending: true }),
     ])
@@ -136,7 +136,7 @@ export default function SalesOrderDetailPage() {
 
   async function handleAddItem(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!tenant?.id || !orderId) return
+    if (!businessUnit?.id || !orderId) return
     if (!canEditLines) {
       setError('Line items can only be edited in draft or confirmed status.')
       return
@@ -167,11 +167,11 @@ export default function SalesOrderDetailPage() {
       ...EMPTY_ITEM_FORM,
       product_id: products[0]?.id ?? '',
     })
-    await fetchDetail(tenant.id, orderId)
+    await fetchDetail(businessUnit.id, orderId)
   }
 
   async function handleStatusSave() {
-    if (!tenant?.id || !orderId) return
+    if (!businessUnit?.id || !orderId) return
     if (!order) return
     if (!canTransitionSalesStatus(order.status, status)) {
       setError(`Invalid status transition from ${order.status ?? 'draft'} to ${status}.`)
@@ -185,7 +185,7 @@ export default function SalesOrderDetailPage() {
     const { error: updateError } = await supabase
       .from('sales_orders')
       .update({ status })
-      .eq('tenant_id', tenant.id)
+      .eq('business_unit_id', businessUnit.id)
       .eq('id', orderId)
 
     setSavingStatus(false)
@@ -195,7 +195,7 @@ export default function SalesOrderDetailPage() {
       return
     }
 
-    await fetchDetail(tenant.id, orderId)
+    await fetchDetail(businessUnit.id, orderId)
   }
 
   const totalAmount = useMemo(() => {
@@ -236,15 +236,15 @@ export default function SalesOrderDetailPage() {
     return <PageHeader title="Sales Order" description="Loading order..." />
   }
 
-  if (!tenant) {
-    return <PageHeader title="Sales Order" description="Select a factory before viewing sales orders." />
+  if (!businessUnit) {
+    return <PageHeader title="Sales Order" description="Select a businessUnit before viewing sales orders." />
   }
 
   if (!order) {
     return (
       <PageHeader
         title="Sales Order Not Found"
-        description="The order could not be loaded for the active factory."
+        description="The order could not be loaded for the active businessUnit."
         actions={<Button variant="outline" onClick={() => router.push('/sales/orders')}>Back to orders</Button>}
       />
     )
@@ -497,3 +497,11 @@ function formatMoney(value: number) {
     maximumFractionDigits: 2,
   }).format(value)
 }
+
+
+
+
+
+
+
+

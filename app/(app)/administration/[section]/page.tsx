@@ -1,7 +1,7 @@
 const sectionTitles: Record<string, { title: string; description: string }> = {
   users: {
     title: 'Users',
-    description: 'Create and manage login users, factory access, and account status.',
+    description: 'Create and manage login users, business unit access, and account status.',
   },
   profiles: {
     title: 'Profiles',
@@ -19,9 +19,9 @@ const sectionTitles: Record<string, { title: string; description: string }> = {
     title: 'Organisation',
     description: 'Manage company identity, plan, fiscal settings, and localisation.',
   },
-  factories: {
-    title: 'Factories / Business Units',
-    description: 'Manage factories, branches, and business-unit access.',
+  businessUnits: {
+    title: 'Business Units',
+    description: 'Manage business units, branches, and business-unit access.',
   },
   'number-series': {
     title: 'Number Series',
@@ -51,3 +51,15 @@ export default async function AdministrationSectionPage({ params }: { params: Pr
     </section>
   )
 }
+
+
+
+
+
+
+
+
+
+
+
+

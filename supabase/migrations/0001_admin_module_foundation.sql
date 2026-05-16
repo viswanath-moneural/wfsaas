@@ -1,5 +1,5 @@
 -- WFSAAS Administration Module Foundation
--- Salesforce-style admin structure for organisations, factories, roles,
+-- Salesforce-style admin structure for organisations, business_units, roles,
 -- profiles, modules, permissions, users, number series, and audit log.
 --
 -- Important safety choice:
@@ -12,7 +12,7 @@ begin;
 drop table if exists public.audit_log;
 drop table if exists public.number_series;
 drop table if exists public.user_permission_sets;
-drop table if exists public.user_factory_access;
+drop table if exists public.user_business_unit_access;
 drop table if exists public.users;
 drop table if exists public.permission_set_permissions;
 drop table if exists public.permission_sets;
@@ -21,10 +21,10 @@ drop table if exists public.org_modules;
 drop table if exists public.modules;
 drop table if exists public.profiles;
 drop table if exists public.roles;
-drop table if exists public.factories;
+drop table if exists public.business_units;
 drop table if exists public.organisations;
 
--- BLOCK 1 - ORGANISATION (Top-Level Tenant)
+-- BLOCK 1 - ORGANISATION (Top-Level Company)
 create table public.organisations (
   id               uuid primary key default gen_random_uuid(),
   name             text not null,
@@ -42,8 +42,8 @@ create table public.organisations (
   updated_at       timestamptz default now()
 );
 
--- BLOCK 2 - FACTORY / BUSINESS UNIT
-create table public.factories (
+-- BLOCK 2 - BUSINESS UNIT
+create table public.business_units (
   id               uuid primary key default gen_random_uuid(),
   org_id           uuid not null references public.organisations(id) on delete cascade,
   name             text not null,
@@ -200,7 +200,7 @@ create table public.permission_set_permissions (
 create table public.users (
   id               uuid primary key references auth.users(id) on delete cascade,
   org_id           uuid references public.organisations(id) on delete set null,
-  factory_id       uuid references public.factories(id) on delete set null,
+  business_unit_id       uuid references public.business_units(id) on delete set null,
   role_id          uuid references public.roles(id),
   profile_id       uuid references public.profiles(id),
   employee_code    text,
@@ -220,14 +220,14 @@ create table public.users (
   unique (org_id, email)
 );
 
--- BLOCK 9 - USER FACTORY ACCESS
-create table public.user_factory_access (
+-- BLOCK 9 - USER BUSINESS UNIT ACCESS
+create table public.user_business_unit_access (
   id               uuid primary key default gen_random_uuid(),
   user_id          uuid not null references public.users(id) on delete cascade,
-  factory_id       uuid not null references public.factories(id) on delete cascade,
+  business_unit_id       uuid not null references public.business_units(id) on delete cascade,
   is_default       boolean default false,
   created_at       timestamptz default now(),
-  unique (user_id, factory_id)
+  unique (user_id, business_unit_id)
 );
 
 -- BLOCK 10 - USER PERMISSION SET ASSIGNMENTS
@@ -244,7 +244,7 @@ create table public.user_permission_sets (
 create table public.number_series (
   id               uuid primary key default gen_random_uuid(),
   org_id           uuid not null references public.organisations(id) on delete cascade,
-  factory_id       uuid references public.factories(id) on delete cascade,
+  business_unit_id       uuid references public.business_units(id) on delete cascade,
   module_key       text not null,
   document_type    text not null,
   prefix           text not null,
@@ -263,7 +263,7 @@ create table public.number_series (
                    ) stored,
   created_at       timestamptz default now(),
   updated_at       timestamptz default now(),
-  unique (org_id, factory_id, document_type, fiscal_year)
+  unique (org_id, business_unit_id, document_type, fiscal_year)
 );
 
 create or replace function public.get_next_number(p_series_id uuid)
@@ -333,6 +333,16 @@ as $$
   select org_id from public.users where id = auth.uid()
 $$;
 
+create or replace function public.current_business_unit_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select business_unit_id from public.users where id = auth.uid()
+$$;
+
 create or replace function public.is_superadmin()
 returns boolean
 language sql
@@ -360,7 +370,7 @@ as $$
 $$;
 
 alter table public.organisations enable row level security;
-alter table public.factories enable row level security;
+alter table public.business_units enable row level security;
 alter table public.roles enable row level security;
 alter table public.profiles enable row level security;
 alter table public.modules enable row level security;
@@ -369,7 +379,7 @@ alter table public.profile_permissions enable row level security;
 alter table public.permission_sets enable row level security;
 alter table public.permission_set_permissions enable row level security;
 alter table public.users enable row level security;
-alter table public.user_factory_access enable row level security;
+alter table public.user_business_unit_access enable row level security;
 alter table public.user_permission_sets enable row level security;
 alter table public.number_series enable row level security;
 alter table public.audit_log enable row level security;
@@ -384,9 +394,9 @@ create policy users_superadmin_all on public.users
 create policy users_org_member_view on public.users
   for select using (org_id = public.current_org_id());
 
-create policy factories_superadmin_all on public.factories
+create policy business_units_superadmin_all on public.business_units
   for all using (public.is_superadmin()) with check (public.is_superadmin());
-create policy factories_org_member_view on public.factories
+create policy business_units_org_member_view on public.business_units
   for select using (org_id = public.current_org_id());
 
 create policy roles_superadmin_all on public.roles
@@ -431,13 +441,13 @@ create policy permission_set_permissions_org_member_view on public.permission_se
     )
   );
 
-create policy user_factory_access_superadmin_all on public.user_factory_access
+create policy user_business_unit_access_superadmin_all on public.user_business_unit_access
   for all using (public.is_superadmin()) with check (public.is_superadmin());
-create policy user_factory_access_org_member_view on public.user_factory_access
+create policy user_business_unit_access_org_member_view on public.user_business_unit_access
   for select using (
     exists (
       select 1 from public.users u
-      where u.id = user_factory_access.user_id
+      where u.id = user_business_unit_access.user_id
         and u.org_id = public.current_org_id()
     )
   );
@@ -474,3 +484,7 @@ commit;
 -- SELECT table_name FROM information_schema.tables
 -- WHERE table_schema = 'public'
 -- ORDER BY table_name;
+
+
+
+

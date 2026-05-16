@@ -16,7 +16,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { handleSupabaseError } from '@/lib/handleSupabaseError'
 
 export default function PurchaseOrderDetailPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const { error: notifyError } = useToast()
   const params = useParams<{ id: string }>()
   const [po, setPo] = useState<any>(null)
@@ -27,13 +27,13 @@ export default function PurchaseOrderDetailPage() {
   const [error, setError] = useState('')
   const { canEdit: canUpdate } = usePermissions('purchases')
   const canEditLines = canUpdate && isPurchaseEditable(po?.status)
-  useEffect(() => { if (!tenant?.id || !params.id) return; void load(tenant.id, params.id) }, [tenant?.id, params.id])
-  async function load(tenantId: string, id: string) {
+  useEffect(() => { if (!businessUnit?.id || !params.id) return; void load(businessUnit.id, params.id) }, [businessUnit?.id, params.id])
+  async function load(businessUnitId: string, id: string) {
     const supabase = getSupabaseClient()
     const [{ data: poData }, { data: itemData }, { data: materialData }] = await Promise.all([
-      supabase.from('purchase_orders').select('id, po_code, po_date, status, vendors(vendor_name)').eq('tenant_id', tenantId).eq('id', id).single(),
+      supabase.from('purchase_orders').select('id, po_code, po_date, status, vendors(vendor_name)').eq('business_unit_id', businessUnitId).eq('id', id).single(),
       supabase.from('purchase_order_items').select('id, ordered_qty, unit, rate, materials(material_code, material_name)').eq('po_id', id).order('sort_order', { ascending: true }),
-      supabase.from('materials').select('id, material_code, material_name, unit').eq('tenant_id', tenantId).eq('is_active', true).order('material_code', { ascending: true }),
+      supabase.from('materials').select('id, material_code, material_name, unit').eq('business_unit_id', businessUnitId).eq('is_active', true).order('material_code', { ascending: true }),
     ])
     setPo(poData); setStatus(poData?.status ?? 'draft'); setItems(itemData ?? []); setMaterials(materialData ?? [])
   }
@@ -43,16 +43,16 @@ export default function PurchaseOrderDetailPage() {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase.from('purchase_order_items').insert({ po_id: params.id, material_id: form.material_id, ordered_qty: Number(form.ordered_qty), unit: form.unit, rate: Number(form.rate), sort_order: items.length + 1 }).select('id').single()
     if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to add purchase order item.'); return }
-    if (tenant?.id) await load(tenant.id, params.id)
+    if (businessUnit?.id) await load(businessUnit.id, params.id)
   }
   async function saveStatus() {
-    if (!tenant?.id || !params.id || !po) return
+    if (!businessUnit?.id || !params.id || !po) return
     if (!canUpdate) return
     if (!canTransitionPurchaseStatus(po.status, status)) { setError(`Invalid status transition from ${po.status ?? 'draft'} to ${status}.`); return }
     const supabase = getSupabaseClient()
-    const { data, error } = await supabase.from('purchase_orders').update({ status }).eq('tenant_id', tenant.id).eq('id', params.id).select('id').single()
+    const { data, error } = await supabase.from('purchase_orders').update({ status }).eq('business_unit_id', businessUnit.id).eq('id', params.id).select('id').single()
     if (handleSupabaseError(error, notifyError)) { setError(error?.message ?? 'Failed to update purchase order status.'); return }
-    await load(tenant.id, params.id)
+    await load(businessUnit.id, params.id)
   }
   return <>
     <PageHeader title={po?.po_code ?? 'Purchase Order'} description={po?.vendors?.vendor_name ?? ''} />
@@ -72,3 +72,11 @@ export default function PurchaseOrderDetailPage() {
     <style jsx>{`.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--space-6)} form{display:flex;flex-direction:column;gap:var(--space-4)} label{display:flex;flex-direction:column;gap:var(--space-1-5)} .form-error{margin:0;color:var(--text-danger)} select{height:var(--input-height-md)} @media(max-width:920px){.layout{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+

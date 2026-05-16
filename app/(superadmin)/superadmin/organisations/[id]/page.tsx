@@ -13,3 +13,8 @@ export default async function OrganisationDetailPage({ params }: { params: Promi
 
   return <OrganisationDetailClient initialData={result.data} />
 }
+
+
+
+
+

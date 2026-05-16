@@ -13,3 +13,8 @@ export default async function RoleDetailPage({ params }: { params: Promise<{ id:
 
   return <RoleDetailClient initialData={result.data} />
 }
+
+
+
+
+

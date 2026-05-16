@@ -16,7 +16,7 @@ interface Item { id: string; qty: number; unit_price: number; discount_pct: numb
 interface Invoice { id: string; invoice_no: string; invoice_date: string; status: string | null; customers: { customer_name: string } | null }
 
 export default function InvoiceDetailPage() {
-  const { tenant } = useAuth()
+  const { businessUnit } = useAuth()
   const params = useParams<{ id: string }>()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [items, setItems] = useState<Item[]>([])
@@ -25,12 +25,12 @@ export default function InvoiceDetailPage() {
   const [error, setError] = useState('')
   const { canEdit: canUpdate } = usePermissions('sales')
 
-  useEffect(() => { if (!tenant?.id || !params.id) { setLoading(false); return } ; void fetchData(tenant.id, params.id) }, [tenant?.id, params.id])
+  useEffect(() => { if (!businessUnit?.id || !params.id) { setLoading(false); return } ; void fetchData(businessUnit.id, params.id) }, [businessUnit?.id, params.id])
 
-  async function fetchData(tenantId: string, id: string) {
+  async function fetchData(businessUnitId: string, id: string) {
     const supabase = getSupabaseClient()
     const [{ data: inv }, { data: lines }] = await Promise.all([
-      supabase.from('invoices').select('id, invoice_no, invoice_date, status, customers(customer_name)').eq('tenant_id', tenantId).eq('id', id).single(),
+      supabase.from('invoices').select('id, invoice_no, invoice_date, status, customers(customer_name)').eq('business_unit_id', businessUnitId).eq('id', id).single(),
       supabase.from('invoice_items').select('id, qty, unit_price, discount_pct, gst_rate, products(product_code, product_name)').eq('invoice_id', id).order('sort_order', { ascending: true }),
     ])
     setInvoice((inv as unknown as Invoice) ?? null)
@@ -40,16 +40,16 @@ export default function InvoiceDetailPage() {
   }
 
   async function saveStatus() {
-    if (!tenant?.id || !invoice?.id) return
+    if (!businessUnit?.id || !invoice?.id) return
     if (!canUpdate) return
     if (!canTransitionSalesStatus(invoice.status, status)) {
       setError(`Invalid status transition from ${invoice.status ?? 'draft'} to ${status}.`)
       return
     }
     const supabase = getSupabaseClient()
-    await supabase.from('invoices').update({ status }).eq('tenant_id', tenant.id).eq('id', invoice.id)
-    if (status === 'paid') await supabase.from('sales_orders').update({ status: 'paid' }).eq('tenant_id', tenant.id).eq('id', (invoice as any).so_id)
-    await fetchData(tenant.id, invoice.id)
+    await supabase.from('invoices').update({ status }).eq('business_unit_id', businessUnit.id).eq('id', invoice.id)
+    if (status === 'paid') await supabase.from('sales_orders').update({ status: 'paid' }).eq('business_unit_id', businessUnit.id).eq('id', (invoice as any).so_id)
+    await fetchData(businessUnit.id, invoice.id)
   }
 
   const totals = useMemo(() => calcInvoiceTotals(items.map((item) => ({ qty: Number(item.qty), unit_price: Number(item.unit_price), discount_pct: Number(item.discount_pct ?? 0), gst_rate: Number(item.gst_rate ?? 0) }))), [items])
@@ -72,3 +72,11 @@ export default function InvoiceDetailPage() {
     <style jsx>{`.top{display:grid;grid-template-columns:1fr 340px;gap:var(--space-6);margin-bottom:var(--space-6)} .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2)} .actions{display:flex;gap:var(--space-2)} select{height:var(--input-height-md);width:100%} .form-error{margin:var(--space-2) 0 0;color:var(--text-danger)} .totals{margin-top:var(--space-4)} p{margin:0 0 var(--space-2)} @media(max-width:900px){.top{grid-template-columns:1fr}}`}</style>
   </>
 }
+
+
+
+
+
+
+
+

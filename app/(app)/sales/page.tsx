@@ -32,7 +32,7 @@ export default function SalesPage() {
     <>
       <PageHeader
         title="Sales"
-        description="Manage the order to cash flow for the active factory."
+        description="Manage the order to cash flow for the active businessUnit."
       />
 
       <section className="sales-grid">
@@ -91,3 +91,10 @@ export default function SalesPage() {
     </>
   )
 }
+
+
+
+
+
+
+

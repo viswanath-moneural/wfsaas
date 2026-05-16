@@ -49,7 +49,7 @@ function emptyForm(orgId: string) {
   return {
     id: '',
     org_id: orgId,
-    factory_id: '',
+    business_unit_id: '',
     module_key: 'sales',
     document_type: 'sales_order',
     prefix: 'SO',
@@ -82,8 +82,8 @@ export default function NumberSeriesAdminClient({ initialSeries, lookups }: { in
   const isSuperadmin = lookups.currentUser?.is_superadmin === true
 
   const visibleSeries = useMemo(() => seriesRows.filter((row) => !selectedOrgId || row.org_id === selectedOrgId), [selectedOrgId, seriesRows])
-  const factories = (lookups.factories ?? []).filter((factory: any) => !form.org_id || factory.org_id === form.org_id)
-  const orgFactories = (lookups.factories ?? []).filter((factory: any) => !selectedOrgId || factory.org_id === selectedOrgId)
+  const businessUnits = (lookups.businessUnits ?? []).filter((businessUnit: any) => !form.org_id || businessUnit.org_id === form.org_id)
+  const orgBusinessUnits = (lookups.businessUnits ?? []).filter((businessUnit: any) => !selectedOrgId || businessUnit.org_id === selectedOrgId)
   const documentsForModule = GROUPS.find((group) => group.key === form.module_key)?.documents ?? []
 
   function refresh() {
@@ -116,7 +116,7 @@ export default function NumberSeriesAdminClient({ initialSeries, lookups }: { in
     setForm({
       id: row.id,
       org_id: row.org_id,
-      factory_id: row.factory_id ?? '',
+      business_unit_id: row.business_unit_id ?? '',
       module_key: row.module_key ?? 'sales',
       document_type: row.document_type ?? 'sales_order',
       prefix: row.prefix ?? '',
@@ -147,7 +147,7 @@ export default function NumberSeriesAdminClient({ initialSeries, lookups }: { in
       }
       const payload = {
         org_id: form.org_id,
-        factory_id: form.factory_id || null,
+        business_unit_id: form.business_unit_id || null,
         module_key: form.module_key,
         document_type: form.document_type,
         prefix: form.prefix,
@@ -200,7 +200,7 @@ export default function NumberSeriesAdminClient({ initialSeries, lookups }: { in
       <div className="admin-page-header">
         <div>
           <h1>Number Series</h1>
-          <p>Configure document auto-numbering by module, document type, and optional factory scope.</p>
+          <p>Configure document auto-numbering by module, document type, and optional businessUnit scope.</p>
         </div>
         <Button onClick={openCreate} disabled={!selectedOrgId}>New Series</Button>
       </div>
@@ -225,7 +225,7 @@ export default function NumberSeriesAdminClient({ initialSeries, lookups }: { in
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id}>
-                      <td>{DOCUMENT_LABELS[row.document_type] ?? row.document_type}{row.factory?.name ? <small className="muted-cell"> {row.factory.name}</small> : null}</td>
+                      <td>{DOCUMENT_LABELS[row.document_type] ?? row.document_type}{row.businessUnit?.name ? <small className="muted-cell"> {row.businessUnit.name}</small> : null}</td>
                       <td>{row.prefix}</td>
                       <td>{row.separator}</td>
                       <td>{row.padding_digits}</td>
@@ -250,7 +250,7 @@ export default function NumberSeriesAdminClient({ initialSeries, lookups }: { in
           <div className="slide-over__panel">
             <div className="slide-over__header"><h2>{editingSeries ? 'Edit Series' : 'New Series'}</h2><Button size="sm" variant="ghost" onClick={() => setPanelOpen(false)}>Close</Button></div>
             <div className="slide-over__body">
-              {isSuperadmin && <label>Organisation<select value={form.org_id} disabled={!!editingSeries} onChange={(event) => setForm({ ...form, org_id: event.target.value, factory_id: '' })}>{(lookups.organisations ?? []).map((org: any) => <option key={org.id} value={org.id}>{org.name}</option>)}</select></label>}
+              {isSuperadmin && <label>Organisation<select value={form.org_id} disabled={!!editingSeries} onChange={(event) => setForm({ ...form, org_id: event.target.value, business_unit_id: '' })}>{(lookups.organisations ?? []).map((org: any) => <option key={org.id} value={org.id}>{org.name}</option>)}</select></label>}
               <label>Module<select value={form.module_key} onChange={(event) => updateModule(event.target.value)}>{GROUPS.map((group) => <option key={group.key} value={group.key}>{group.label}</option>)}</select></label>
               <label>Document Type*<select value={form.document_type} onChange={(event) => setForm({ ...form, document_type: event.target.value, prefix: defaultPrefix(event.target.value) })}>{documentsForModule.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
               <div className="form-grid">
@@ -261,7 +261,7 @@ export default function NumberSeriesAdminClient({ initialSeries, lookups }: { in
                 <Input label="Start Value" type="number" value={form.start_value} onChange={(event) => setForm({ ...form, start_value: Number(event.target.value) })} />
                 <label>Reset Frequency<select value={form.reset_frequency} onChange={(event) => setForm({ ...form, reset_frequency: event.target.value })}><option value="never">Never</option><option value="yearly">Yearly</option><option value="monthly">Monthly</option></select></label>
               </div>
-              <label>Factory<select value={form.factory_id} onChange={(event) => setForm({ ...form, factory_id: event.target.value })}><option value="">Organisation-wide</option>{factories.map((factory: any) => <option key={factory.id} value={factory.id}>{factory.name}</option>)}</select></label>
+              <label>Business Unit<select value={form.business_unit_id} onChange={(event) => setForm({ ...form, business_unit_id: event.target.value })}><option value="">Organisation-wide</option>{businessUnits.map((businessUnit: any) => <option key={businessUnit.id} value={businessUnit.id}>{businessUnit.name}</option>)}</select></label>
               <label className="toggle-row"><input type="checkbox" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} /> Active</label>
               <div className="success-box"><strong>Live Preview</strong><span>{previewFor(form)}</span></div>
             </div>
@@ -302,3 +302,15 @@ function defaultPrefix(documentType: string) {
   }
   return map[documentType] ?? documentType.slice(0, 3).toUpperCase()
 }
+
+
+
+
+
+
+
+
+
+
+
+

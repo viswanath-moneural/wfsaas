@@ -10,7 +10,7 @@ export async function listAll(orgId?: string): Promise<SuperadminActionResult<an
     const verified = await requireSuperadmin()
     await getSuperadminContext(verified)
     const admin = createAdminClient()
-    let query = admin.from('tenants').select('*, organisations(name, slug)').order('created_at', { ascending: false })
+    let query = admin.from('business_units').select('*, organisations(name, slug)').order('created_at', { ascending: false })
     if (orgId) query = query.eq('org_id', orgId)
     const { data, error } = await query
     if (error) throw error
@@ -40,11 +40,11 @@ export async function create(input: {
       created_by: verified.userId,
     }
 
-    if (!payload.org_id || !payload.name) throw new Error('Organisation and factory name are required.')
+    if (!payload.org_id || !payload.name) throw new Error('Organisation and businessUnit name are required.')
 
-    const { data, error } = await admin.from('tenants').insert(payload).select('*').single()
+    const { data, error } = await admin.from('business_units').insert(payload).select('*').single()
     if (error) throw error
-    await writeAuditLog({ admin, actor: verified, orgId: data.org_id, tableName: 'tenants', recordId: data.id, action: 'create', newData: data })
+    await writeAuditLog({ admin, actor: verified, orgId: data.org_id, tableName: 'business_units', recordId: data.id, action: 'create', newData: data })
     return ok(data)
   } catch (error) {
     return fail(error)
@@ -62,7 +62,7 @@ export async function update(id: string, input: {
     const verified = await requireSuperadmin()
     await getSuperadminContext(verified)
     const admin = createAdminClient()
-    const { data: oldData, error: lookupError } = await admin.from('tenants').select('*').eq('id', id).single()
+    const { data: oldData, error: lookupError } = await admin.from('business_units').select('*').eq('id', id).single()
     if (lookupError) throw lookupError
     const payload = {
       ...(input.org_id !== undefined ? { org_id: input.org_id } : {}),
@@ -73,27 +73,37 @@ export async function update(id: string, input: {
       last_modified_at: nowIso(),
       last_modified_by: verified.userId,
     }
-    const { data, error } = await admin.from('tenants').update(payload).eq('id', id).select('*').single()
+    const { data, error } = await admin.from('business_units').update(payload).eq('id', id).select('*').single()
     if (error) throw error
-    await writeAuditLog({ admin, actor: verified, orgId: data.org_id, tableName: 'tenants', recordId: id, action: 'update', oldData, newData: data })
+    await writeAuditLog({ admin, actor: verified, orgId: data.org_id, tableName: 'business_units', recordId: id, action: 'update', oldData, newData: data })
     return ok(data)
   } catch (error) {
     return fail(error)
   }
 }
 
-export async function deleteFactory(id: string): Promise<SuperadminActionResult<{ id: string }>> {
+export async function deleteBusinessUnit(id: string): Promise<SuperadminActionResult<{ id: string }>> {
   try {
     const verified = await requireSuperadmin()
     await getSuperadminContext(verified)
     const admin = createAdminClient()
-    const { data: oldData, error: lookupError } = await admin.from('tenants').select('*').eq('id', id).single()
+    const { data: oldData, error: lookupError } = await admin.from('business_units').select('*').eq('id', id).single()
     if (lookupError) throw lookupError
-    const { error } = await admin.from('tenants').delete().eq('id', id)
+    const { error } = await admin.from('business_units').delete().eq('id', id)
     if (error) throw error
-    await writeAuditLog({ admin, actor: verified, orgId: oldData.org_id, tableName: 'tenants', recordId: id, action: 'delete', oldData })
+    await writeAuditLog({ admin, actor: verified, orgId: oldData.org_id, tableName: 'business_units', recordId: id, action: 'delete', oldData })
     return ok({ id })
   } catch (error) {
     return fail(error)
   }
 }
+
+
+
+
+
+
+
+
+
+

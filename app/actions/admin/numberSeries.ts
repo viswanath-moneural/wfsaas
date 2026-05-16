@@ -9,14 +9,14 @@ function assertAccess(actor: any, orgId: string) {
   if (!actor.is_superadmin && orgId !== actor.org_id) throw new Error('Cannot access another organisation.')
 }
 
-export async function getAll(org_id?: string, factory_id?: string): Promise<AdminActionResult<any[]>> {
+export async function getAll(org_id?: string, business_unit_id?: string): Promise<AdminActionResult<any[]>> {
   try {
     const actor = await requireOrgAdmin()
     const effectiveOrgId = org_id ?? actor.org_id
     if (!effectiveOrgId) throw new Error('Organisation context is required.')
     assertAccess(actor, effectiveOrgId)
-    let query = createAdminClient().from('number_series').select('*, factory:factories(*)').eq('org_id', effectiveOrgId).order('module_key').order('document_type')
-    if (factory_id) query = query.eq('factory_id', factory_id)
+    let query = createAdminClient().from('number_series').select('*, businessUnit:business_units(*)').eq('org_id', effectiveOrgId).order('module_key').order('document_type')
+    if (business_unit_id) query = query.eq('business_unit_id', business_unit_id)
     const { data, error } = await query
     if (error) throw error
     return ok(data ?? [])
@@ -31,18 +31,18 @@ export async function getLookups(): Promise<AdminActionResult<any>> {
     const admin = createAdminClient()
     const [
       { data: organisations, error: orgError },
-      { data: factories, error: factoryError },
+      { data: businessUnits, error: businessUnitError },
     ] = await Promise.all([
       actor.is_superadmin
         ? admin.from('organisations').select('*').order('name')
         : admin.from('organisations').select('*').eq('id', actor.org_id ?? '').order('name'),
       actor.is_superadmin
-        ? admin.from('factories').select('*').order('name')
-        : admin.from('factories').select('*').eq('org_id', actor.org_id ?? '').order('name'),
+        ? admin.from('business_units').select('*').order('name')
+        : admin.from('business_units').select('*').eq('org_id', actor.org_id ?? '').order('name'),
     ])
     if (orgError) throw orgError
-    if (factoryError) throw factoryError
-    return ok({ currentUser: actor, organisations: organisations ?? [], factories: factories ?? [] })
+    if (businessUnitError) throw businessUnitError
+    return ok({ currentUser: actor, organisations: organisations ?? [], businessUnits: businessUnits ?? [] })
   } catch (error) {
     return fail(error)
   }
@@ -144,3 +144,11 @@ export async function resetSeries(id: string): Promise<AdminActionResult<any>> {
 }
 
 export { deleteNumberSeries as delete }
+
+
+
+
+
+
+
+

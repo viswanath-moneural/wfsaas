@@ -46,7 +46,7 @@ Before production testing:
 
 - Apply required migrations.
 - Verify enum values, especially `user_role`.
-- Verify RLS policies for all org-scoped and tenant-scoped tables.
+- Verify RLS policies for all org-scoped and business-unit-scoped tables.
 - Verify superadmin bypass strategy.
 - Configure initial organisation and superadmin user mapping.
 - Configure number series for required transaction documents.
@@ -73,13 +73,13 @@ Run in staging first, verify counts, then apply to production.
 - Vercel build passes.
 - Environment variables are set.
 - Supabase RLS policies are applied.
-- Superadmin can create organisations and factories.
+- Superadmin can create organisations and business units.
 - Auth user exists for platform superadmin.
 - Matching `public.users` row exists.
 - Required roles and permissions exist.
 - Required modules are enabled.
 - Required number series are active.
-- At least one factory, customer, vendor, product, material, and warehouse exists for UAT.
+- At least one business unit, customer, vendor, product, material, and warehouse exists for UAT.
 - WhatsApp webhook token is configured.
 
 ## Backup and Rollback
@@ -98,7 +98,13 @@ Run in staging first, verify counts, then apply to production.
 4. Create role row if missing.
 5. Assign role in `user_roles`.
 6. Login and verify app context.
-7. Create first factory.
+7. Create first business unit.
 8. Configure modules and number series.
 9. Add masters.
 10. Run UAT flows.
+
+
+
+
+
+

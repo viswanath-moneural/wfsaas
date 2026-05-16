@@ -27,3 +27,7 @@ export function createAdminClient() {
 export function getSupabaseAdminClient() {
   return createAdminClient()
 }
+
+
+
+
