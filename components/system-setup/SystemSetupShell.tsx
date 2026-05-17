@@ -5,12 +5,14 @@ import { usePathname } from 'next/navigation'
 import Badge from '@/components/ui/Badge'
 
 const navItems = [
-  { href: '/system-setup/users', label: 'Users', icon: 'US' },
-  { href: '/system-setup/roles', label: 'Roles & Permissions', icon: 'RP' },
-  { href: '/system-setup/permissions', label: 'Permissions', icon: 'PM' },
-  { href: '/system-setup/layouts', label: 'Layouts', icon: 'LY' },
-  { href: '/system-setup/custom-fields', label: 'Custom Fields', icon: 'CF' },
-  { href: '/system-setup/modules', label: 'Modules', icon: 'MD' },
+  { href: '/system-setup/elements', label: 'Element Manager', icon: 'EM' },
+  { href: '/system-setup/layouts', label: 'Screen Designer', icon: 'SD' },
+  { href: '/system-setup/actors', label: 'Actors', icon: 'AC' },
+  { href: '/system-setup/actor-roles', label: 'Actor Roles', icon: 'AR' },
+  { href: '/system-setup/add-on-permissions', label: 'Add-on Permissions', icon: 'AP' },
+  { href: '/system-setup/org-tree', label: 'Org Tree', icon: 'OT' },
+  { href: '/system-setup/action-log', label: 'Action Log', icon: 'AL' },
+  { href: '/system-setup/modules', label: 'Module Manager', icon: 'MM' },
 ]
 
 export default function SystemSetupShell({
