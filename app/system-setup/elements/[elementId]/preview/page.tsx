@@ -1,6 +1,7 @@
 import { compileElementMetadata, getElementDetail } from '@/app/actions/systemSetup/elementEngine'
 import DataGridRenderer from '@/components/flare/DataGridRenderer'
 import ElementPageRenderer from '@/components/flare/ElementPageRenderer'
+import ElementDynamicForm from '@/components/dynamic-form/ElementDynamicForm'
 
 function buildPreviewSections(compiled: any) {
   const layoutSections = compiled?.screen_design?.sections
@@ -41,6 +42,7 @@ export default async function ElementPreviewPage({
 
   return (
     <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+      <ElementDynamicForm elementKey={compiled.data.element.api_name} operation="insert" />
       <ElementPageRenderer elementLabel={compiled.data.element.label} sections={buildPreviewSections(compiled.data)} />
       <DataGridRenderer title={`${compiled.data.element.label} Data Grid`} columns={columns} rows={[]} />
     </div>

@@ -57,6 +57,8 @@ export interface DataPointDefinition {
   formula: string | null
   min_value: number | null
   max_value: number | null
+  decimal_places?: number | null
+  max_length?: number | null
   sort_order: number
 }
 

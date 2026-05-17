@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { errorJson, getApiContext, getCache, requireElement, setCache } from '../../../../_lib'
+import { ensureDefaultScreenDesign } from '@/lib/engine/screen-design'
 
 type SectionField = { field_key: string; column?: number; row?: number; is_required_override?: boolean }
 type Section = { id: string; title: string; columns: 1 | 2; fields: SectionField[] }
@@ -7,7 +8,7 @@ type Section = { id: string; title: string; columns: 1 | 2; fields: SectionField
 export async function GET(_: Request, { params }: { params: Promise<{ elementKey: string }> }) {
   const ctx = await getApiContext()
   if (ctx instanceof NextResponse) return ctx
-  const { supabase, orgId, businessUnitId } = ctx
+  const { supabase, orgId, businessUnitId, userId } = ctx
   const { elementKey } = await params
 
   const element = await requireElement(supabase, orgId, businessUnitId, elementKey)
@@ -17,16 +18,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ elementKey
   const cached = await getCache(supabase, orgId, businessUnitId, cacheKey)
   if (cached) return NextResponse.json(cached)
 
+  const ensured = await ensureDefaultScreenDesign({ orgId, businessUnitId, elementKey, userId })
+
   const [{ data: layout, error: layoutError }, { data: fields, error: fieldsError }] = await Promise.all([
     supabase
       .from('screen_design_definitions')
       .select('design_name, sections')
-      .eq('org_id', orgId)
-      .eq('business_unit_id', businessUnitId)
-      .eq('element_key', elementKey)
-      .eq('is_default', true)
-      .order('last_modified_at', { ascending: false })
-      .limit(1)
+      .eq('id', ensured.id)
       .maybeSingle(),
     supabase
       .from('data_point_definitions')
