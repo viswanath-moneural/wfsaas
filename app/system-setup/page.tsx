@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Card from '@/components/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import { bootstrapOrganisationAndBusinessUnit, getSetupState } from '@/app/actions/setup'
+import { bootstrapSystemSetup, getSystemSetupState } from '@/app/actions/systemSetup'
 
 const EMPTY_FORM = {
   organisationName: 'WFSAAS Platform',
@@ -17,7 +17,7 @@ const EMPTY_FORM = {
   businessUnitAddress: '',
 }
 
-export default function SetupPage() {
+export default function SystemSetupPage() {
   const router = useRouter()
   const [state, setState] = useState<any>(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -26,7 +26,7 @@ export default function SetupPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    void getSetupState().then((result) => {
+    void getSystemSetupState().then((result) => {
       setState(result)
       setLoading(false)
       if (result.ok && result.hasOrg && result.hasBusinessUnit) router.replace('/dashboard')
@@ -38,7 +38,7 @@ export default function SetupPage() {
     setSaving(true)
     setError('')
 
-    const result = await bootstrapOrganisationAndBusinessUnit(form)
+    const result = await bootstrapSystemSetup(form)
     setSaving(false)
 
     if (!result.ok) {
@@ -54,29 +54,29 @@ export default function SetupPage() {
   }
 
   if (loading) {
-    return <main className="setup"><Card><p>Loading setup...</p></Card><SetupStyles /></main>
+    return <main className="system-setup"><Card><p>Loading system setup...</p></Card><SystemSetupStyles /></main>
   }
 
   if (!state?.ok) {
-    return <main className="setup"><Card><h1>Setup unavailable</h1><p>{state?.message ?? 'Sign in before setup.'}</p></Card><SetupStyles /></main>
+    return <main className="system-setup"><Card><h1>System Setup unavailable</h1><p>{state?.message ?? 'Sign in before system setup.'}</p></Card><SystemSetupStyles /></main>
   }
 
   if (!state.isSuperadmin) {
     return (
-      <main className="setup">
+      <main className="system-setup">
         <Card>
           <h1>Contact your administrator</h1>
           <p>Your login is not mapped to an organisation or business unit yet. Ask your administrator to assign access from Configuration.</p>
         </Card>
-        <SetupStyles />
+        <SystemSetupStyles />
       </main>
     )
   }
 
   return (
-    <main className="setup">
+    <main className="system-setup">
       <Card>
-        <h1>Initial setup</h1>
+        <h1>Initial System Setup</h1>
         <p>Create the first organisation and business unit, then this login will be assigned automatically.</p>
         <form onSubmit={handleSubmit}>
           <Input label="Organisation name" value={form.organisationName} onChange={(event) => setForm((prev) => ({ ...prev, organisationName: event.target.value }))} required />
@@ -87,18 +87,18 @@ export default function SetupPage() {
           <Input label="Business Unit phone" value={form.businessUnitPhone} onChange={(event) => setForm((prev) => ({ ...prev, businessUnitPhone: event.target.value }))} />
           <Input label="Business Unit address" value={form.businessUnitAddress} onChange={(event) => setForm((prev) => ({ ...prev, businessUnitAddress: event.target.value }))} />
           {error && <p className="form-error">{error}</p>}
-          <Button type="submit" loading={saving} fullWidth>Complete setup</Button>
+          <Button type="submit" loading={saving} fullWidth>Complete System Setup</Button>
         </form>
       </Card>
-      <SetupStyles />
+      <SystemSetupStyles />
     </main>
   )
 }
 
-function SetupStyles() {
+function SystemSetupStyles() {
   return (
     <style jsx global>{`
-      .setup {
+      .system-setup {
         min-height: 100vh;
         display: grid;
         place-items: center;
@@ -106,27 +106,27 @@ function SetupStyles() {
         background: var(--surface-page);
       }
 
-      .setup :global(.card) {
+      .system-setup :global(.card) {
         width: min(520px, 100%);
       }
 
-      .setup h1 {
+      .system-setup h1 {
         margin: 0;
         font-size: var(--text-2xl);
       }
 
-      .setup p {
+      .system-setup p {
         margin: var(--space-2) 0 var(--space-5);
         color: var(--text-secondary);
       }
 
-      .setup form {
+      .system-setup form {
         display: flex;
         flex-direction: column;
         gap: var(--space-4);
       }
 
-      .setup .form-error {
+      .system-setup .form-error {
         margin: 0;
         color: var(--text-danger);
         font-size: var(--text-sm);

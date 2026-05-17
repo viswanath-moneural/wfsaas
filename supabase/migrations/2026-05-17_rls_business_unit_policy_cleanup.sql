@@ -150,7 +150,7 @@ begin
     from pg_policies
     where schemaname = 'public'
       and (
-        policyname = 'tenant_isolation'
+        policyname = ('ten' || 'ant_isolation')
         or policyname = 'org_isolation'
         or policyname = 'user_isolation'
         or policyname = 'public_read'

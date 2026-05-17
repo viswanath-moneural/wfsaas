@@ -115,7 +115,7 @@ export async function createUser(input: CreateUserInput): Promise<CreateUserResu
         .maybeSingle()
 
       if (businessUnitError || !businessUnit) {
-        return { ok: false, message: 'Selected businessUnit does not belong to this organisation.', code: 'TENANT_NOT_FOUND' }
+        return { ok: false, message: 'Selected Business Unit does not belong to this organisation.', code: 'BUSINESS_UNIT_NOT_FOUND' }
       }
     }
 

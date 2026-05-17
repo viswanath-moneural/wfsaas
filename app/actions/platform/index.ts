@@ -125,7 +125,7 @@ export async function createBusinessUnit(input: {
     .single()
 
   if (error || !data?.id) {
-    return { ok: false, message: error?.message ?? 'Failed to create businessUnit.', code: 'FACTORY_CREATE_FAILED' }
+    return { ok: false, message: error?.message ?? 'Failed to create Business Unit.', code: 'BUSINESS_UNIT_CREATE_FAILED' }
   }
 
   return { ok: true, businessUnitId: data.id }

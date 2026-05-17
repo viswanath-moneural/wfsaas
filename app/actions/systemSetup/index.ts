@@ -4,7 +4,7 @@ import { createClient as createSessionClient } from '@/lib/supabase.server'
 import { isPrivilegedRole } from '@/lib/auth/isPrivilegedRole'
 import { getSupabaseAdminClient } from '@/lib/supabase/adminClient'
 
-export type SetupStateResult =
+export type SystemSetupStateResult =
   | {
       ok: true
       userId: string
@@ -17,11 +17,11 @@ export type SetupStateResult =
     }
   | { ok: false; message: string; code?: string }
 
-export type BootstrapSetupResult =
+export type BootstrapSystemSetupResult =
   | { ok: true; orgId: string; businessUnitId: string }
   | { ok: false; message: string; code?: string }
 
-async function getSetupCaller() {
+async function getSystemSetupCaller() {
   const sessionClient = await createSessionClient()
   const {
     data: { user },
@@ -72,8 +72,8 @@ function normalizeSlug(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
-export async function getSetupState(): Promise<SetupStateResult> {
-  const caller = await getSetupCaller()
+export async function getSystemSetupState(): Promise<SystemSetupStateResult> {
+  const caller = await getSystemSetupCaller()
   if (!caller.ok) return caller
 
   return {
@@ -88,7 +88,7 @@ export async function getSetupState(): Promise<SetupStateResult> {
   }
 }
 
-export async function bootstrapOrganisationAndBusinessUnit(input: {
+export async function bootstrapSystemSetup(input: {
   organisationName: string
   organisationSlug: string
   country?: string | null
@@ -96,11 +96,11 @@ export async function bootstrapOrganisationAndBusinessUnit(input: {
   businessUnitName: string
   businessUnitPhone?: string | null
   businessUnitAddress?: string | null
-}): Promise<BootstrapSetupResult> {
-  const caller = await getSetupCaller()
+}): Promise<BootstrapSystemSetupResult> {
+  const caller = await getSystemSetupCaller()
   if (!caller.ok) return caller
   if (!caller.isSuperadmin) {
-    return { ok: false, message: 'Contact your administrator to assign an organisation and businessUnit.', code: 'SUPERADMIN_REQUIRED' }
+    return { ok: false, message: 'Contact your administrator to assign an organisation and Business Unit.', code: 'SUPERADMIN_REQUIRED' }
   }
 
   const organisationName = input.organisationName.trim()
@@ -108,7 +108,7 @@ export async function bootstrapOrganisationAndBusinessUnit(input: {
   const businessUnitName = input.businessUnitName.trim()
 
   if (!organisationName || !organisationSlug || !businessUnitName) {
-    return { ok: false, message: 'Organisation name, slug, and businessUnit name are required.', code: 'VALIDATION_ERROR' }
+    return { ok: false, message: 'Organisation name, slug, and Business Unit name are required.', code: 'VALIDATION_ERROR' }
   }
 
   const admin = getSupabaseAdminClient()
@@ -148,7 +148,7 @@ export async function bootstrapOrganisationAndBusinessUnit(input: {
 
   if (businessUnitError || !businessUnit?.id) {
     await admin.from('organisations').delete().eq('id', org.id)
-    return { ok: false, message: businessUnitError?.message ?? 'Failed to create businessUnit.', code: 'FACTORY_CREATE_FAILED' }
+    return { ok: false, message: businessUnitError?.message ?? 'Failed to create Business Unit.', code: 'BUSINESS_UNIT_CREATE_FAILED' }
   }
 
   const { error: updateError } = await admin

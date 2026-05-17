@@ -328,8 +328,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (state.isLoading || !state.isAuthenticated || !state.user) return
-    if (!state.user.org_id && pathname !== '/setup') {
-      router.replace('/setup')
+    if (!state.user.org_id && pathname !== '/system-setup') {
+      router.replace('/system-setup')
     }
   }, [pathname, router, state.isAuthenticated, state.isLoading, state.user])
 
