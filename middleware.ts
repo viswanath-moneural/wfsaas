@@ -15,10 +15,44 @@ const PUBLIC_ROUTES = [
   '/reset-password',
   '/invite',
   '/privacy',
-  '/system-setup',
   '/api/webhook',         // WhatsApp webhook — always public
   '/api/auth/callback',
 ]
+
+const MODULE_ROUTE_MAP: Record<string, string> = {
+  '/sales/customers': 'customers',
+  '/sales/orders': 'sales_orders',
+  '/sales/invoices': 'invoices',
+  '/sales/dispatch': 'dispatch_orders',
+  '/sales/returns': 'sales_returns',
+  '/sales/payments': 'customer_payments',
+  '/purchases/vendors': 'vendors',
+  '/purchases/orders': 'purchase_orders',
+  '/purchases/grn': 'goods_receipt',
+  '/purchases/returns': 'purchase_returns',
+  '/purchases/payments': 'vendor_payments',
+  '/manufacturing/work-orders': 'work_orders',
+  '/manufacturing/production-runs': 'production_runs',
+  '/manufacturing/machines': 'machines',
+  '/manufacturing/bom': 'bill_of_materials',
+  '/manufacturing/quality': 'quality_checks',
+  '/inventory/movements': 'stock_movements',
+  '/inventory/adjustments': 'stock_adjustments',
+  '/inventory/warehouses': 'warehouses',
+  '/crm/leads': 'leads',
+  '/crm/opportunities': 'opportunities',
+  '/crm/quotes': 'quotes',
+  '/crm/parties': 'parties',
+  '/crm/interactions': 'interactions',
+  '/hr/employees': 'employees',
+  '/hr/attendance': 'attendance',
+  '/hr/payroll': 'payroll',
+}
+
+function moduleForPath(pathname: string) {
+  const match = Object.entries(MODULE_ROUTE_MAP).find(([path]) => pathname === path || pathname.startsWith(`${path}/`))
+  return match?.[1] ?? null
+}
 
 function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some(route => pathname.startsWith(route))
@@ -70,6 +104,30 @@ export async function middleware(request: NextRequest) {
     url.pathname = '/login'
     url.searchParams.set('redirect', pathname)
     return NextResponse.redirect(url)
+  }
+
+  const moduleKey = moduleForPath(pathname)
+  if (moduleKey) {
+    const { data: appUser } = await supabase
+      .from('users')
+      .select('org_id, role')
+      .eq('id', user.id)
+      .maybeSingle()
+    const role = String(appUser?.role ?? '').toLowerCase()
+    const bypass = role === 'superadmin' || role === 'admin'
+    if (appUser?.org_id && !bypass) {
+      const { data: moduleRow } = await supabase
+        .from('org_modules')
+        .select('is_enabled')
+        .eq('org_id', appUser.org_id)
+        .eq('module_key', moduleKey)
+        .maybeSingle()
+      if (!moduleRow?.is_enabled) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+      }
+    }
   }
 
   return supabaseResponse

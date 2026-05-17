@@ -9,8 +9,11 @@ import Sidebar from '@/components/layout/Sidebar'
 import TopBar from '@/components/layout/TopBar'
 import MobileNav from '@/components/layout/MobileNav'
 import { useAuth } from '@/lib/AuthContext'
+import { MODULE_ROUTE_MAP } from '@/lib/moduleManager'
 
 function moduleFromPath(pathname: string) {
+  const routeEntry = Object.entries(MODULE_ROUTE_MAP).find(([path]) => pathname === path || pathname.startsWith(`${path}/`))
+  if (routeEntry) return routeEntry[1]
   const firstSegment = pathname.split('/').filter(Boolean)[0]
   if (!firstSegment || firstSegment === 'dashboard') return 'dashboard'
   if (['sales', 'purchases', 'manufacturing', 'inventory', 'crm', 'hr', 'reports', 'configuration'].includes(firstSegment)) {
