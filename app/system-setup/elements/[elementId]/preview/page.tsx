@@ -19,12 +19,19 @@ function buildPreviewSections(compiled: any) {
   ]
 }
 
-export default async function ElementPreviewPage({ params }: { params: Promise<{ elementId: string }> }) {
+export default async function ElementPreviewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ elementId: string }>
+  searchParams: Promise<{ businessUnitId?: string }>
+}) {
   const route = await params
-  const detail = await getElementDetail(route.elementId)
+  const search = await searchParams
+  const detail = await getElementDetail(route.elementId, search.businessUnitId ?? null)
   if (detail.error || !detail.data) return <div className="error-panel">{detail.error ?? 'Element not found.'}</div>
 
-  const compiled = await compileElementMetadata({ elementApiName: detail.data.element.api_name })
+  const compiled = await compileElementMetadata({ elementApiName: detail.data.element.api_name, business_unit_id: search.businessUnitId ?? null })
   if (compiled.error || !compiled.data) return <div className="error-panel">{compiled.error ?? 'Failed to compile metadata.'}</div>
 
   const columns = (compiled.data.data_points ?? []).slice(0, 6).map((point: any) => ({

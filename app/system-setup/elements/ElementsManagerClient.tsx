@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
 import Card from '@/components/Card'
 import Button from '@/components/ui/Button'
@@ -14,14 +15,23 @@ type ElementRow = {
   api_name: string
   label: string
   description: string | null
-  element_type: 'core' | 'adaptive'
+  element_type: string
   is_core: boolean
-  storage_strategy: 'physical_table' | 'adaptive_json'
+  storage_strategy: string
   physical_table_name: string | null
   is_active: boolean
 }
 
-export default function ElementsManagerClient({ initialElements }: { initialElements: ElementRow[] }) {
+export default function ElementsManagerClient({
+  initialElements,
+  businessUnits,
+  selectedBusinessUnitId,
+}: {
+  initialElements: ElementRow[]
+  businessUnits: Array<{ id: string; business_unit_name: string; is_active: boolean }>
+  selectedBusinessUnitId: string | null
+}) {
+  const router = useRouter()
   const [rows, setRows] = useState(initialElements)
   const [query, setQuery] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -54,6 +64,7 @@ export default function ElementsManagerClient({ initialElements }: { initialElem
         storage_strategy: form.storage_strategy,
         physical_table_name: form.physical_table_name || null,
         is_active: form.is_active,
+        business_unit_id: selectedBusinessUnitId,
       })
       if (result.error || !result.data) {
         toast.error(result.error ?? 'Failed to create Element.')
@@ -81,6 +92,15 @@ export default function ElementsManagerClient({ initialElements }: { initialElem
             <h1>Element Manager</h1>
             <p>Manage Core Elements and Adaptive Elements for this organisation.</p>
           </div>
+          <select
+            value={selectedBusinessUnitId ?? ''}
+            onChange={(event) => router.push(`/system-setup/elements?businessUnitId=${event.target.value}`)}
+          >
+            <option value="" disabled>Select Business Unit</option>
+            {businessUnits.filter((row) => row.is_active).map((row) => (
+              <option key={row.id} value={row.id}>{row.business_unit_name}</option>
+            ))}
+          </select>
           <Input placeholder="Search elements..." value={query} onChange={(event) => setQuery(event.target.value)} />
         </div>
       </Card>
@@ -122,7 +142,7 @@ export default function ElementsManagerClient({ initialElements }: { initialElem
                 <td><Badge variant={row.element_type === 'core' ? 'primary' : 'success'}>{row.element_type}</Badge></td>
                 <td>{row.storage_strategy}{row.physical_table_name ? ` (${row.physical_table_name})` : ''}</td>
                 <td><Badge variant={row.is_active ? 'success' : 'slate'}>{row.is_active ? 'active' : 'inactive'}</Badge></td>
-                <td><Link href={`/system-setup/elements/${row.id}`}><Button size="xs" variant="outline">Open</Button></Link></td>
+                <td><Link href={`/system-setup/elements/${row.id}?businessUnitId=${selectedBusinessUnitId ?? ''}`}><Button size="xs" variant="outline">Open</Button></Link></td>
               </tr>
             ))}
             {!filtered.length && <tr><td colSpan={5}>No Elements found.</td></tr>}

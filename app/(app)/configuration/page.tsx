@@ -6,6 +6,11 @@ import PageHeader from '@/components/layout/PageHeader'
 
 const CONFIG_SECTIONS = [
   {
+    title: 'System Setup (Element Manager)',
+    description: 'Open the new admin console for Elements, Data Points, Screen Designer, Actors, and Action Log.',
+    href: '/system-setup/elements',
+  },
+  {
     title: 'Organisation',
     description: 'Create and manage organisations (platform superadmin controls).',
     href: '/configuration/organisation',

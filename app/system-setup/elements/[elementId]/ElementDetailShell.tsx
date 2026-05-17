@@ -23,9 +23,11 @@ const tabs = [
 export default function ElementDetailShell({
   detail,
   section,
+  selectedBusinessUnitId,
 }: {
   detail: any
   section: 'overview' | 'data-points' | 'data-bonds' | 'data-rules' | 'screen-designs' | 'record-types'
+  selectedBusinessUnitId: string | null
 }) {
   const toast = useToast()
   const pathname = usePathname()
@@ -40,6 +42,7 @@ export default function ElementDetailShell({
     startTransition(async () => {
       const result = await upsertDataPoint({
         element_id: detail.element.id,
+        business_unit_id: selectedBusinessUnitId,
         api_name: pointForm.api_name,
         label: pointForm.label,
         data_point_type: detail.element.is_core ? 'core' : 'adaptive',
@@ -62,6 +65,7 @@ export default function ElementDetailShell({
     startTransition(async () => {
       const result = await upsertDataBond({
         source_element_id: detail.element.id,
+        business_unit_id: selectedBusinessUnitId,
         target_element_id: bondForm.target_element_id,
         bond_type: 'lookup',
         api_name: bondForm.api_name,
@@ -88,6 +92,7 @@ export default function ElementDetailShell({
       }
       const result = await upsertDataRule({
         element_id: detail.element.id,
+        business_unit_id: selectedBusinessUnitId,
         api_name: ruleForm.api_name,
         label: ruleForm.label,
         error_message: ruleForm.error_message,
@@ -114,6 +119,7 @@ export default function ElementDetailShell({
       }
       const result = await upsertScreenDesign({
         element_id: detail.element.id,
+        business_unit_id: selectedBusinessUnitId,
         layout_name: screenForm.layout_name,
         sections,
         is_default: true,
@@ -132,7 +138,7 @@ export default function ElementDetailShell({
       <Card>
         <div className="heading">
           <div>
-            <Link href="/system-setup/elements">Back to Element Manager</Link>
+            <Link href={`/system-setup/elements?businessUnitId=${selectedBusinessUnitId ?? ''}`}>Back to Element Manager</Link>
             <h1>{detail.element.label}</h1>
             <p>{detail.element.api_name}</p>
           </div>
@@ -143,7 +149,7 @@ export default function ElementDetailShell({
         </div>
         <div className="tabs">
           {tabs.map((tab) => (
-            <Link className={pathname.endsWith(tab.suffix || detail.element.id) && section === tab.key ? 'active' : section === tab.key ? 'active' : ''} key={tab.key} href={`/system-setup/elements/${detail.element.id}${tab.suffix}`}>
+            <Link className={pathname.endsWith(tab.suffix || detail.element.id) && section === tab.key ? 'active' : section === tab.key ? 'active' : ''} key={tab.key} href={`/system-setup/elements/${detail.element.id}${tab.suffix}?businessUnitId=${selectedBusinessUnitId ?? ''}`}>
               {tab.label}
             </Link>
           ))}
@@ -183,7 +189,7 @@ export default function ElementDetailShell({
                   <td>{row.label}</td>
                   <td>{row.api_name}</td>
                   <td>{row.field_type}</td>
-                  <td><Button size="xs" variant="danger" onClick={() => startTransition(async () => { await deleteDataPoint(row.id); location.reload() })}>Delete</Button></td>
+                  <td><Button size="xs" variant="danger" onClick={() => startTransition(async () => { await deleteDataPoint(row.id, selectedBusinessUnitId); location.reload() })}>Delete</Button></td>
                 </tr>
               ))}
             </tbody>
@@ -210,7 +216,7 @@ export default function ElementDetailShell({
                   <td>{row.label}</td>
                   <td>{row.api_name}</td>
                   <td>{row.bond_type}</td>
-                  <td><Button size="xs" variant="danger" onClick={() => startTransition(async () => { await deleteDataBond(row.id); location.reload() })}>Delete</Button></td>
+                  <td><Button size="xs" variant="danger" onClick={() => startTransition(async () => { await deleteDataBond(row.id, selectedBusinessUnitId); location.reload() })}>Delete</Button></td>
                 </tr>
               ))}
             </tbody>
@@ -235,7 +241,7 @@ export default function ElementDetailShell({
                   <td>{row.label}</td>
                   <td>{row.api_name}</td>
                   <td>{row.error_message}</td>
-                  <td><Button size="xs" variant="danger" onClick={() => startTransition(async () => { await deleteDataRule(row.id); location.reload() })}>Delete</Button></td>
+                  <td><Button size="xs" variant="danger" onClick={() => startTransition(async () => { await deleteDataRule(row.id, selectedBusinessUnitId); location.reload() })}>Delete</Button></td>
                 </tr>
               ))}
             </tbody>
